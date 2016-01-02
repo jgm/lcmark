@@ -28,7 +28,7 @@ program does, with the following enhancements:
 
 `lcmark --help` will print a short list of options.
 
-For fuller descriptions, see the [`lunamark(1)` man page](lunamark.1.md).
+For fuller descriptions, see the [`lcmark(1)` man page](lcmark.1.md).
 
 YAML metadata
 -------------
