@@ -33,12 +33,67 @@ For fuller descriptions, see the [`lcmark(1)` man page](lcmark.1.md).
 YAML metadata
 -------------
 
-TODO
+The YAML metadata section (if present) must occur at the
+beginning of the document.  It begins with a line `---`
+and end with a line `...` or `---`.  Between these, a YAML
+key/value map is expected.  YAML escaping rules must be
+followed.  The values may be YAML arrays, maps, or strings;
+strings will be interpreted as CommonMark.
+
+Example:
+
+```
+---
+# This is a comment!
+# Note that the quotes below are needed because of the
+# colon in the title:
+title: 'This is my *article*: subtitle here'
+author:
+- name: Sam Smith
+  institute: U of X
+- name:  Sasha Xi
+  institute: NXQ
+abstract: |
+  Here is a multiline abstract.
+
+  - It can even
+  - contain
+  - lists and other block elements
+...
+
+Document body starts here...
+```
+
+`lcmark.convert` returns two values on success, the parsed
+document body and a table containing the parsed metadata.
 
 Templates
 ---------
 
-TODO
+Templates are used to integrate the document body and metadata,
+together with necessary headers and footers, into a standalone
+document.
+
+`lcmark` uses [Lust](https://github.com/weshoke/Lust) templates.
+For most purposes it suffices to know the following:
+
+  - To insert the value of a metadata field, use `$` followed
+    by the key: `$title`.  If this is followed directly by
+    an alphanumeric, you can use the form `$<title>`.
+    For nested structures, you can do `$a.b.c`.
+  - To insert a literal `$`, use a double `$$`.
+  - Conditionals look like this:
+    ```
+    @if(author)<author>
+    @if(author)<author>else<{{No author!}}
+    ```
+  - You can iterate over an array like this:
+    ```
+    @map{author, _separator=" \and "}:{{$name ($institute)}}
+
+    ```
+
+Some sample templates are provided in `templates/`.
 
 Filters
 -------
