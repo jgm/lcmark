@@ -25,7 +25,7 @@ dependencies = {
    "lua >= 5.2",
    "cmark >= 0.23",
    "yaml >= 1.1",
-   "lust >= 0.1",
+   "lpeg >= 0.12",
    "alt-getopt >= 0.7",
 }
 build = {

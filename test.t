@@ -16,6 +16,19 @@ subtest("spec tests (lcmark)", function()
   end
 end)
 
+local render_template = lcmark.render_template
+subtest("template tests", function()
+  local res, msg = render_template("$", {})
+  is(res, nil, "unescaped $")
+  is(msg, "parse failure at position 1: '$'", "error message for parse failure")
+  is(render_template("foo$$bar$$baz", {}),
+    "foo$bar$baz", "escaped $")
+  is(render_template("foo $bar$", {bar = "bim"}),
+    "foo bim", "variable")
+  is(render_template("$if(foo)$hello$endif$", {foo = true}),
+    "hello", "simple if")
+end)
+
 local body, meta, msg = lcmark.convert("Hello *world*", "latex", {})
 is(body, "Hello \\emph{world}\n", "simple latex body")
 eq_array(meta, {}, "simple latex meta")

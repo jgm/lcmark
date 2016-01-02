@@ -1,5 +1,6 @@
 local cmark = require("cmark")
 local yaml = require("yaml")
+local lpeg = require("lpeg")
 
 local lcmark = {}
 
@@ -135,6 +136,44 @@ local parse_document_with_metadata = function(inp, options)
   end
   doc = cmark.parse_string(inp, options)
   return doc, metadata
+end
+
+local S, C, P, R, V, Ct, Carg = lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
+local G = Ct{"Main",
+  Main = V"Template" * (-1 + lpeg.Cp()),
+  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"Var")^0) / table.concat,
+  EscapedDollar = P"$$" / "$",
+  Conditional = P"$if(" * Carg(1) * C(V"Variable") * P")$" * C(V"Template") *
+    (P"$else$" * C(V"Template"))^-1 * P"$endif$" /
+    function(ctx, var, ifpart, elsepart)
+      if ctx[var] then
+        return ifpart
+      else
+        return elsepart
+      end
+    end,
+  Text = C((1 - P"$")^1),
+  Reserved = P"if$" + P"endif$" + P"else$" + P"for$" + P"endfor$" + P"sep$",
+  Variable = (R"az" + R"AZ" + R"09" + P"_")^1,
+  Var = P"$" * - V"Reserved" * Carg(1) * C(V"Variable") * P"$" /
+    function(ctx, var)
+      return ctx[var] or ""
+    end,
+}
+
+-- render pandoc style template:
+lcmark.render_template = function(tpl, context)
+  local matches = lpeg.match(G, tpl, nil, context)
+  if matches[2] == nil then
+    if matches[1] == nil then
+      return nil, "parse failed at the end of the template"
+    else
+      return matches[1]
+    end
+  else
+    return nil, ("parse failure at position " .. tostring(matches[2]) ..
+                  ": '" .. string.sub(tpl, matches[2]) .. "'")
+  end
 end
 
 -- Convert 'inp' (CommonMark formatted string) to the output format
