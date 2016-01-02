@@ -1,0 +1,171 @@
+#!/usr/bin/env lua
+
+-- package.path='./?.lua;' .. package.path -- UNCOMMENT FOR TESTING
+local alt_getopt = require("alt_getopt")
+local cmark = require("cmark")
+local lcmark = require("lcmark")
+local Lust = require("lust")
+
+local function err(msg, exit_code)
+  io.stderr:write("lcmark: " .. msg .. "\n")
+  os.exit(exit_code or 1)
+end
+
+local function ensure_one_of(optval,s,ary)
+  for i=1,#ary do
+    if ary[i]==s then return true end
+  end
+  err("Illegal value for " .. optval ..
+     "\nLegal values are: " .. table.concat(ary,", "))
+end
+
+--- Find a template and return its contents (or `false` if
+-- not found). The template is sought first in the
+-- working directory, then in `templates`, then in
+-- `$HOME/.lunamark/templates`, then in the Windows
+-- `APPDATA` directory.
+local find_template = function(name, to)
+  if not name then
+    return false, "Missing template name"
+  end
+  local base, ext = name:match("([^%.]*)(.*)")
+  if (not ext or ext == "") and to then
+    ext = "." .. to
+  end
+  local fname = base .. ext
+  local file = io.open(fname, "r")
+  if not file then
+    file = io.open("templates/" .. fname, "r")
+  end
+  if not file then
+    local home = os.getenv("HOME")
+    if home then
+      file = io.open(home .. "/.lcmark/templates/" .. fname, "r")
+    end
+  end
+  if not file then
+    local appdata = os.getenv("APPDATA")
+    if appdata then
+      file = io.open(appdata .. "/lcmark/templates/" .. fname, "r")
+    end
+  end
+  if file then
+    return file:read("*all")
+  else
+    return false, "Could not find template '" .. fname .. "'"
+  end
+end
+
+
+local usage = [[
+Usage: lcmark [options] [file..] - convert markdown to other formats
+
+Options:
+  --to,-t FORMAT             Target format
+  --output,-o FILE           Output file
+  --filter,-F FILE,[,FILE]   Lua script to filter AST
+  --template,-T FILE         Insert output into template
+  --columns,c NUMBER         Number of columns to wrap text (or 0 for no wrap)
+  --smart,-S                 Smart punctuation
+  --safe,-s                  Omit HTML and potentially unsafe attributes
+  --hardbreaks,-h            Treat softbreaks as hard line breaks
+  --sourcepos,-p             Include source position information
+  --version,-V               Version information
+  --help,-h                  This message
+
+FORMAT can be html, latex, man, commonmark, or xml.
+]]
+
+local long_opts = {
+  to = "t",
+  columns = "c",
+  smart = "S",
+  hardbreaks = "h",
+  sourcepos = "p",
+  safe = "s",
+  output = "o",
+  filter = "F",
+  template = "T",
+  version = "V",
+  help = "h"
+}
+
+local short_opts = "t:o:c:F:T:sSphVh"
+
+local optarg,optind = alt_getopt.get_opts(arg, short_opts, long_opts)
+
+if optarg.h then
+  io.write(usage)
+  os.exit(0)
+end
+
+if optarg.V then
+  io.write("lcmark " .. lcmark.version .. "\nCopyright 2015 John MacFarlane\n")
+  os.exit(0)
+end
+
+local to = optarg.t or "html"
+ensure_one_of("--to,-t", to,
+  {"commonmark","html","latex","man","xml"})
+
+local output = optarg.o
+local ok, msg = pcall(function() io.output(output) end)
+if not ok then
+  err("Could not open '" .. output .. "' for writing.\n" .. msg, 9)
+end
+
+local options = {
+  smart = optarg.S,
+  hardbreaks = optarg.h,
+  safe = optarg.s,
+  sourcepos = optarg.p,
+  columns = optarg.c or 0,
+  yaml_metadata = true,
+  filters = {}
+}
+
+if optarg['F'] then
+  for filter in string.gmatch(optarg['F'], "([^,]+)") do
+    local f, msg = lcmark.load_filter(filter)
+    if f then
+      table.insert(options.filters, f)
+    else
+      err("Error loading filter " .. filter .. "\n" .. msg)
+    end
+  end
+end
+
+local args = {}
+for i=optind,#arg do
+  table.insert(args,arg[i])
+end
+
+local inp
+if #args == 0 then
+  inp = io.read("*all")
+else
+  inpt = {}
+  for _,f in ipairs(args) do
+    local ok, msg = pcall(function() io.input(f) end)
+    if ok then
+      table.insert(inpt, io.read("*all"))
+    else
+      err("Could not open file '" .. f .. "'", 7)
+    end
+  end
+  inp = table.concat(inpt, "\n")
+end
+
+local body, data, msg = lcmark.convert(inp, to, options)
+if body then
+  local template = find_template(optarg.T, to)
+  if template then
+    data.body = body
+    io.write(Lust(template):gen(data))
+  else
+    io.write(body)
+  end
+else
+  err(msg)
+end
+

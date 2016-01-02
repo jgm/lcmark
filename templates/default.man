@@ -1,0 +1,4 @@
+.TH "$title" "$section" "$date" "$footer" "$header"
+$body
+.SH AUTHORS
+@map{a = author, _separator=", "}:{{$a}}

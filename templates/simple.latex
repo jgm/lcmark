@@ -1,0 +1,9 @@
+\documentclass{article}
+\title{$title}
+@if(#author > "0")<{{
+\author{@map{author, _separator=" \and "}:{{$name ($institute)}}}
+}}>
+\begin{document}
+\maketitle
+$body
+\end{document}
