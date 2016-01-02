@@ -95,7 +95,7 @@ The module exports
 For developers
 --------------
 
-`make` builds the rocks and installs them locally.
+`make` builds the rock and installs it locally.
 
 `make test` runs some tests.  These are in `test.t`.
 You'll need the `prove` executable and the `lua-TestMore` rock.
