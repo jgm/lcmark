@@ -1,9 +1,9 @@
 \documentclass{article}
-\title{$title}
-@if(#author > "0")<{{
-\author{@map{author, _separator=" \and "}:{{$name ($institute)}}}
-}}>
+\title{$title$}
+$if(author)$
+\author{$for(author)$$author$$sep$\and$endfor$}
+$endif$
 \begin{document}
 \maketitle
-$body
+$body$
 \end{document}
