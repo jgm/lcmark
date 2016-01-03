@@ -155,6 +155,38 @@ function lcmark.apply_template(m, ctx)
   end
 end
 
+local get_value = function(var, ctx)
+  local result = ctx
+  assert(type(var) == 'table')
+  for _,varpart in ipairs(var) do
+    if type(result) ~= 'table' then
+      return nil
+    end
+    result = result[varpart]
+    if result == nil then
+      return nil
+    end
+  end
+  return result
+end
+
+local set_value = function(var, newval, ctx)
+  local result = ctx
+  assert(type(var) == 'table')
+  for i,varpart in ipairs(var) do
+    if i == #var then
+      -- last one
+      result[varpart] = newval
+    else
+      result = result[varpart]
+      if result == nil then
+        return nil
+      end
+    end
+  end
+  return true
+end
+
 -- Template syntax.
 local S, C, P, R, V, Ct, Carg =
   lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
@@ -166,22 +198,22 @@ local TemplateGrammar = Ct{"Main",
                  V"ForLoop" +
                  V"Var")^0),
   EscapedDollar = P"$$" / "$",
-  Conditional = P"$if(" * C(V"Variable") * P")$" * Ct(V"Template") *
+  Conditional = P"$if(" * Ct(V"Variable") * P")$" * Ct(V"Template") *
     (P"$else$" * Ct(V"Template"))^-1 * P"$endif$" /
     function(var, ifpart, elsepart)
       return function(ctx)
-        if ctx[var] then
+        if get_value(var, ctx) then
           return lcmark.apply_template(ifpart, ctx)
         else
           return lcmark.apply_template(elsepart, ctx)
         end
       end
     end,
-  ForLoop = P"$for(" * C(V"Variable") * P")$" * Ct(V"Template") *
+  ForLoop = P"$for(" * Ct(V"Variable") * P")$" * Ct(V"Template") *
     (P"$sep$" * Ct(V"Template"))^-1 * P"$endfor$" /
     function(var, inner, sep)
       return function(ctx)
-        local val = ctx[var]
+        local val = get_value(var, ctx)
         local vs
         if not val then
           return ""
@@ -194,23 +226,29 @@ local TemplateGrammar = Ct{"Main",
         end
         local buffer = {}
         for i,v in ipairs(vs) do
-          ctx[var] = v -- set temporary context
+          set_value(var, v, ctx) -- set temporary context
           buffer[#buffer + 1] = lcmark.apply_template(inner, ctx)
           if sep and i < #vs then
             buffer[#buffer + 1] = lcmark.apply_template(sep, ctx)
           end
-          ctx[var] = val -- restore original context
+          set_value(var, val, ctx) -- restore original context
         end
         return lcmark.apply_template(buffer, ctx)
       end
     end,
   Text = C((1 - P"$")^1),
   Reserved = P"if$" + P"endif$" + P"else$" + P"for$" + P"endfor$" + P"sep$",
-  Variable = (R"az" + R"AZ" + R"09" + P"_")^1,
-  Var = P"$" * - V"Reserved" * C(V"Variable") * P"$" /
+  VarPart = (R"az" + R"AZ" + R"09" + P"_")^1,
+  Variable = C(V"VarPart") * (P"." * C(V"VarPart"))^0,
+  Var = P"$" * - V"Reserved" * Ct(V"Variable") * P"$" /
     function(var)
       return function(ctx)
-        return ctx[var] or ""
+        local val = get_value(var, ctx)
+        if val then
+          return tostring(val)
+        else
+          return ""
+        end
       end
     end,
 }
@@ -231,6 +269,7 @@ lcmark.compile_template = function(tpl)
   end
 end
 
+-- Compiles and applies a template in one function.
 function lcmark.render_template(tpl, ctx)
   compiled_template, msg = lcmark.compile_template(tpl)
   if not compiled_template then
