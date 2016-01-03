@@ -25,6 +25,8 @@ subtest("template tests", function()
     "foo$bar$baz", "escaped $")
   is(render_template("foo $bar$", {bar = "bim"}),
     "foo bim", "variable")
+  is(render_template("foo $bar.baz$", {bar = { baz = "bim" }}),
+    "foo bim", "variable with field")
   is(render_template("$if(foo)$hello$endif$", {foo = true}),
     "hello", "simple if")
   is(render_template("$for(foo)$$foo$$sep$, $endfor$", {foo = {1,2,3}}),

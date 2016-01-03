@@ -138,15 +138,16 @@ local parse_document_with_metadata = function(inp, options)
   return doc, metadata
 end
 
-local apply_context
-apply_context = function(m, ctx)
+-- Apply a compiled template to a context (a dictionary-like
+-- table).
+function lcmark.apply_template(m, ctx)
   if type(m) == 'function' then
     return m(ctx)
   elseif type(m) == 'table' then
     local buffer = {}
     local i
     for i,v in ipairs(m) do
-      buffer[i] = apply_context(v, ctx)
+      buffer[i] = lcmark.apply_template(v, ctx)
     end
     return table.concat(buffer)
   else
@@ -154,19 +155,25 @@ apply_context = function(m, ctx)
   end
 end
 
-local S, C, P, R, V, Ct, Carg = lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
-local G = Ct{"Main",
+-- Template syntax.
+local S, C, P, R, V, Ct, Carg =
+  lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
+local TemplateGrammar = Ct{"Main",
   Main = V"Template" * (-1 + lpeg.Cp()),
-  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"ForLoop" + V"Var")^0),
+  Template = Ct((V"Text" +
+                 V"EscapedDollar" +
+                 V"Conditional" +
+                 V"ForLoop" +
+                 V"Var")^0),
   EscapedDollar = P"$$" / "$",
   Conditional = P"$if(" * C(V"Variable") * P")$" * Ct(V"Template") *
     (P"$else$" * Ct(V"Template"))^-1 * P"$endif$" /
     function(var, ifpart, elsepart)
       return function(ctx)
         if ctx[var] then
-          return apply_context(ifpart, ctx)
+          return lcmark.apply_template(ifpart, ctx)
         else
-          return apply_context(elsepart, ctx)
+          return lcmark.apply_template(elsepart, ctx)
         end
       end
     end,
@@ -188,13 +195,13 @@ local G = Ct{"Main",
         local buffer = {}
         for i,v in ipairs(vs) do
           ctx[var] = v -- set temporary context
-          buffer[#buffer + 1] = apply_context(inner, ctx)
+          buffer[#buffer + 1] = lcmark.apply_template(inner, ctx)
           if sep and i < #vs then
-            buffer[#buffer + 1] = apply_context(sep, ctx)
+            buffer[#buffer + 1] = lcmark.apply_template(sep, ctx)
           end
           ctx[var] = val -- restore original context
         end
-        return apply_context(buffer, ctx)
+        return lcmark.apply_template(buffer, ctx)
       end
     end,
   Text = C((1 - P"$")^1),
@@ -208,19 +215,28 @@ local G = Ct{"Main",
     end,
 }
 
--- render pandoc style template:
-lcmark.render_template = function(tpl, context)
-  local matches = lpeg.match(G, tpl, nil)
+-- Compile a template (string) into something that can
+-- be applied to a context using 'lmark.apply_template'.
+lcmark.compile_template = function(tpl)
+  local matches = lpeg.match(TemplateGrammar, tpl, nil)
   if matches[2] == nil then
     if matches[1] == nil then
       return nil, "parse failed at the end of the template"
     else
-      return apply_context(matches[1], context)
+      return matches[1]
     end
   else
     return nil, ("parse failure at position " .. tostring(matches[2]) ..
                   ": '" .. string.sub(tpl, matches[2]) .. "'")
   end
+end
+
+function lcmark.render_template(tpl, ctx)
+  compiled_template, msg = lcmark.compile_template(tpl)
+  if not compiled_template then
+    return nil, msg
+  end
+  return lcmark.apply_template(compiled_template, ctx)
 end
 
 -- Convert 'inp' (CommonMark formatted string) to the output format
