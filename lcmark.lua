@@ -204,8 +204,10 @@ local TemplateGrammar = Ct{"Main",
       return function(ctx)
         if get_value(var, ctx) then
           return lcmark.apply_template(ifpart, ctx)
-        else
+        elseif elsepart then
           return lcmark.apply_template(elsepart, ctx)
+        else
+          return ""
         end
       end
     end,
@@ -238,7 +240,7 @@ local TemplateGrammar = Ct{"Main",
     end,
   Text = C((1 - P"$")^1),
   Reserved = P"if$" + P"endif$" + P"else$" + P"for$" + P"endfor$" + P"sep$",
-  VarPart = (R"az" + R"AZ" + R"09" + P"_")^1,
+  VarPart = (R"az" + R"AZ" + R"09" + S"_-")^1,
   Variable = C(V"VarPart") * (P"." * C(V"VarPart"))^0,
   Var = P"$" * - V"Reserved" * Ct(V"Variable") * P"$" /
     function(var)

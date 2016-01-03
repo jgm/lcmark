@@ -33,6 +33,8 @@ subtest("template tests", function()
     "foo ", "variable with missing field")
   is(render_template("$if(foo)$hello$endif$", {foo = true}),
     "hello", "simple if")
+  is(render_template("$if(foo)$hello$endif$", {}),
+    "", "simple if with missing variable")
   is(render_template("$if(foo)$hello $foo$$endif$", {foo = true}),
     "hello true", "if with variable")
   is(render_template("$if(foo)$hello$else$goodbye$endif$", {foo = true}),
@@ -43,6 +45,10 @@ subtest("template tests", function()
     "{1}{2}{3}", "simple for")
   is(render_template("$for(foo)$$foo$$sep$, $endfor$", {foo = {1,2,3}}),
     "1, 2, 3", "simple for with sep")
+  is(render_template("$for(foo)$$foo$$sep$, $endfor$", {foo = {}}),
+    "", "for with empty list")
+  is(render_template("$for(foo)$$foo$$sep$, $endfor$", {}),
+    "", "for with nonexistent variable")
 end)
 
 local body, meta, msg = lcmark.convert("Hello *world*", "latex", {})
