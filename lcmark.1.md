@@ -2,6 +2,8 @@
 title: lcmark
 section: 1
 date: January 1, 2016
+author:
+- John MacFarlane
 ...
 
 # NAME
@@ -123,8 +125,4 @@ concatenates them, and converts the result from markdown to LaTeX.
 produces a LaTeX file using the template `letter.latex`,
 and setting the variable `cc` to `{"Smith","Jim Jones"}`
 and `sign` to `"yes"`.
-
-# AUTHORS
-
-lcmark is written by John MacFarlane.
 
