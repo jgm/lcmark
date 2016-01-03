@@ -265,7 +265,7 @@ lcmark.compile_template = function(tpl)
     end
   else
     return nil, ("parse failure at position " .. tostring(matches[2]) ..
-                  ": '" .. string.sub(tpl, matches[2]) .. "'")
+                  ": '" .. string.sub(tpl, matches[2], matches[2] + 20) .. "'")
   end
 end
 
