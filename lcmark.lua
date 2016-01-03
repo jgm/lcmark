@@ -156,10 +156,10 @@ end
 local S, C, P, R, V, Ct, Carg = lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
 local G = Ct{"Main",
   Main = V"Template" * (-1 + lpeg.Cp()),
-  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"Var")^0),
+  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"ForLoop" + V"Var")^0),
   EscapedDollar = P"$$" / "$",
-  Conditional = P"$if(" * C(V"Variable") * P")$" * C(V"Template") *
-    (P"$else$" * C(V"Template"))^-1 * P"$endif$" /
+  Conditional = P"$if(" * C(V"Variable") * P")$" * Ct(V"Template") *
+    (P"$else$" * Ct(V"Template"))^-1 * P"$endif$" /
     function(var, ifpart, elsepart)
       return function(ctx)
         if ctx[var] then
@@ -167,6 +167,30 @@ local G = Ct{"Main",
         else
           return apply_context(elsepart, ctx)
         end
+      end
+    end,
+  ForLoop = P"$for(" * C(V"Variable") * P")$" * Ct(V"Template") *
+    (P"$sep$" * Ct(V"Template"))^-1 * P"$endfor$" /
+    function(var, inner, sep)
+      return function(ctx)
+        local val = ctx[var]
+        if not val then
+          return ""
+        end
+        if type(val) ~= 'table' then
+          -- if not a table, just iterate once
+          val = {val}
+        end
+        local buffer = {}
+        for i,v in ipairs(val) do
+          ctx[var] = v -- set temporary context
+          buffer[#buffer + 1] = apply_context(inner, ctx)
+          if sep and i < #val then
+            buffer[#buffer + 1] = apply_context(sep, ctx)
+          end
+          ctx[var] = val -- restore original context
+        end
+        return apply_context(buffer, ctx)
       end
     end,
   Text = C((1 - P"$")^1),

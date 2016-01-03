@@ -27,6 +27,8 @@ subtest("template tests", function()
     "foo bim", "variable")
   is(render_template("$if(foo)$hello$endif$", {foo = true}),
     "hello", "simple if")
+  is(render_template("$for(foo)$$foo$$sep$, $endfor$", {foo = {1,2,3}}),
+    "1, 2, 3", "simple for with sep")
 end)
 
 local body, meta, msg = lcmark.convert("Hello *world*", "latex", {})
