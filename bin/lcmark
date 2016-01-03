@@ -160,7 +160,12 @@ if body then
   local template = find_template(optarg.T, to)
   if template then
     data.body = body
-    io.write(lcmark.render_template(template, data))
+    local rendered, msg = lcmark.render_template(template, data)
+    if rendered then
+      io.write(rendered)
+    else
+      err("Could not render template " .. optarg.T .. ":\n" .. msg)
+    end
   else
     io.write(body)
   end
