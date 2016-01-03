@@ -138,37 +138,56 @@ local parse_document_with_metadata = function(inp, options)
   return doc, metadata
 end
 
+local apply_context
+apply_context = function(m, ctx)
+  if type(m) == 'function' then
+    return m(ctx)
+  elseif type(m) == 'table' then
+    buffer = {}
+    for _,x in ipairs(m) do
+      buffer[#buffer + 1] = apply_context(x, ctx)
+    end
+    return table.concat(buffer)
+  else
+    return tostring(m)
+  end
+end
+
 local S, C, P, R, V, Ct, Carg = lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
 local G = Ct{"Main",
   Main = V"Template" * (-1 + lpeg.Cp()),
-  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"Var")^0) / table.concat,
+  Template = Ct((V"Text" + V"EscapedDollar" + V"Conditional" + V"Var")^0),
   EscapedDollar = P"$$" / "$",
-  Conditional = P"$if(" * Carg(1) * C(V"Variable") * P")$" * C(V"Template") *
+  Conditional = P"$if(" * C(V"Variable") * P")$" * C(V"Template") *
     (P"$else$" * C(V"Template"))^-1 * P"$endif$" /
-    function(ctx, var, ifpart, elsepart)
-      if ctx[var] then
-        return ifpart
-      else
-        return elsepart
+    function(var, ifpart, elsepart)
+      return function(ctx)
+        if ctx[var] then
+          return apply_context(ifpart, ctx)
+        else
+          return apply_context(elsepart, ctx)
+        end
       end
     end,
   Text = C((1 - P"$")^1),
   Reserved = P"if$" + P"endif$" + P"else$" + P"for$" + P"endfor$" + P"sep$",
   Variable = (R"az" + R"AZ" + R"09" + P"_")^1,
-  Var = P"$" * - V"Reserved" * Carg(1) * C(V"Variable") * P"$" /
-    function(ctx, var)
-      return ctx[var] or ""
+  Var = P"$" * - V"Reserved" * C(V"Variable") * P"$" /
+    function(var)
+      return function(ctx)
+        return ctx[var] or ""
+      end
     end,
 }
 
 -- render pandoc style template:
 lcmark.render_template = function(tpl, context)
-  local matches = lpeg.match(G, tpl, nil, context)
+  local matches = lpeg.match(G, tpl, nil)
   if matches[2] == nil then
     if matches[1] == nil then
       return nil, "parse failed at the end of the template"
     else
-      return matches[1]
+      return apply_context(matches[1], context)
     end
   else
     return nil, ("parse failure at position " .. tostring(matches[2]) ..
