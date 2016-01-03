@@ -49,6 +49,11 @@ subtest("template tests", function()
     "", "for with empty list")
   is(render_template("$for(foo)$$foo$$sep$, $endfor$", {}),
     "", "for with nonexistent variable")
+  is(render_template("$if(foo)$\nhello\n$endif$", {foo = "hi"}),
+     render_template("$if(foo)$hello$endif$", {foo = "hi"}),
+     "ignore newline after if and before endif")
+  is(render_template("$if(foo)$\nhello\n$endif$\n", {foo = false}),
+      "", "no extra blank line for conditional")
 end)
 
 local body, meta, msg = lcmark.convert("Hello *world*", "latex", {})
