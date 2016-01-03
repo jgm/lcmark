@@ -143,9 +143,10 @@ apply_context = function(m, ctx)
   if type(m) == 'function' then
     return m(ctx)
   elseif type(m) == 'table' then
-    buffer = {}
-    for _,x in ipairs(m) do
-      buffer[#buffer + 1] = apply_context(x, ctx)
+    local buffer = {}
+    local i
+    for i,v in ipairs(m) do
+      buffer[i] = apply_context(v, ctx)
     end
     return table.concat(buffer)
   else
@@ -174,18 +175,21 @@ local G = Ct{"Main",
     function(var, inner, sep)
       return function(ctx)
         local val = ctx[var]
+        local vs
         if not val then
           return ""
         end
-        if type(val) ~= 'table' then
+        if type(val) == 'table' then
+          vs = val
+        else
           -- if not a table, just iterate once
-          val = {val}
+          vs = {val}
         end
         local buffer = {}
-        for i,v in ipairs(val) do
+        for i,v in ipairs(vs) do
           ctx[var] = v -- set temporary context
           buffer[#buffer + 1] = apply_context(inner, ctx)
-          if sep and i < #val then
+          if sep and i < #vs then
             buffer[#buffer + 1] = apply_context(sep, ctx)
           end
           ctx[var] = val -- restore original context
