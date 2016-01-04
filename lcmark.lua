@@ -55,10 +55,11 @@ for k,v in pairs(cmark) do
 end
 
 -- Create a filter from a script.  A filter is
--- a function that takes two arguments ('doc', 'to'),
--- where 'doc' is a cmark node and 'to' is a string
+-- a function that takes three arguments ('doc', 'meta', 'to'),
+-- where 'doc' is a cmark node, 'meta' is a nested lua table
+-- whose leaf nodes are cmark nodes, and 'to' is a string
 -- specifying the output format.  The function may
--- destructively modify 'doc'.  A script defining
+-- destructively modify 'doc' and 'meta'.  A script defining
 -- a filter should return a filter function.
 -- If successful, 'load_filter' returns the filter,
 -- otherwise it returns nil and an error message,
@@ -348,8 +349,8 @@ function lcmark.convert(inp, to, options)
     return nil, nil, "Unable to parse document"
   end
   for _, f in ipairs(filters) do
-    walk_table(meta, function(node) f(node, to) end, true)
-    f(doc, to)
+    walk_table(meta, function(node) f(node, meta, to) end, true)
+    f(doc, meta, to)
   end
   local body = writer(doc, opts, columns)
   local data = walk_table(meta,

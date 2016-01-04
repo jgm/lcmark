@@ -5,9 +5,9 @@
 -- states how many links the document contains.
 
 -- A filter is a lua program that returns a function
--- whose arguments are a cmark node and a string giving
--- the target format.
-return function(doc, format)
+-- whose arguments are a cmark node, a metadata tree
+-- of cmark nodes, and a string giving the target format.
+return function(doc, meta, format)
    local cur, node_type, entering
    local links = 0
 
