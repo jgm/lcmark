@@ -49,7 +49,8 @@ program does, with the following enhancements:
 
 `--filter,-F` *file[,file]*
 
-  Filter the parsed AST using a lua script.  TODO details.
+  Filter the parsed AST using a lua script.  See FILTERS
+  below for details.
 
 `--template,-T` *file*
 
@@ -156,7 +157,22 @@ guide:
 
 # FILTERS
 
-TODO
+Filters modify the parsed document prior to rendering.
+
+A filter is a function that takes three arguments ('doc',
+'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
+lua table whose leaf nodes are cmark nodes, and 'to' is a string
+specifying the output format.  The function may destructively
+modify 'doc' and 'meta'.
+
+For examples, see the `filters/` directory in the source
+repository.
+
+The arguments to `--filter` should be lua scripts that `return`
+a filter function, as defined above.  Filters will be run in the
+order listed.  Filters are applied to the root document node,
+not to metadata (although a filter can operate on metadata if
+desired).
 
 # EXAMPLES
 

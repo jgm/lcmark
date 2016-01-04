@@ -129,7 +129,15 @@ Some sample templates are provided in `templates/`.
 Filters
 -------
 
-TODO
+Filters modify the parsed document prior to rendering.
+
+A filter is a function that takes three arguments ('doc',
+'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
+lua table whose leaf nodes are cmark nodes, and 'to' is a string
+specifying the output format.  The function may destructively
+modify 'doc' and 'meta'.
+
+Some sample filters are provided in `filters/`.
 
 lcmark (module)
 -----------------
