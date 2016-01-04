@@ -106,6 +106,6 @@ ok(count_links, "loaded filter count_links.lua")
 
 local body, meta, msg = lcmark.convert("[link](u) and <http://example.com>", "html", {filters = {count_links}})
 is(body, "<p><a href=\"u\">link</a> (link #1) and <a href=\"http://example.com\">http://example.com</a> (link #2)</p>\n<p>2 links found in this html document.</p>\n", "added link numbers and count")
-is(meta.number_of_links, "2")
+is(meta.number_of_links, "2", "added metadata field number_of_links")
 
 done_testing()
