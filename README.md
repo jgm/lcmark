@@ -74,24 +74,55 @@ Templates are used to integrate the document body and metadata,
 together with necessary headers and footers, into a standalone
 document.
 
-`lcmark` uses [Lust](https://github.com/weshoke/Lust) templates.
-For most purposes it suffices to know the following:
+`lcmark` uses the same templating language as
+[pandoc](http://pandoc.org), and pandoc templates can be
+used with `lcmark` (with the caveat that pandoc sets many
+variables automatically which `lcmark` does not). A short
+guide:
 
-  - To insert the value of a metadata field, use `$` followed
-    by the key: `$title`.  If this is followed directly by
-    an alphanumeric, you can use the form `$<title>`.
-    For nested structures, you can do `$a.b.c`.
-  - To insert a literal `$`, use a double `$$`.
-  - Conditionals look like this:
-    ```
-    @if(author)<author>
-    @if(author)<author>else<{{No author!}}
-    ```
-  - You can iterate over an array like this:
-    ```
-    @map{author, _separator=" \and "}:{{$name ($institute)}}
+* The only special character in templates is `$`.  To get
+  a literal `$` character, use `$$`.
 
-    ```
+* `$title$` will be replaced with the value of the `title`
+  metadata field, interpreted as CommonMark and rendered into
+  the target format.  Variable names can contain alphanumerics,
+  `-`, and `_`.
+
+* `$author.name$` will be replaced with the `author` field
+  of the `name` metadata field (assumed to be a map).
+
+* `$if(author)$...$endif$` will be
+  replaced by the material in `...` if `author` has a
+  "truish" value, otherwise by nothing.
+  Truish values are everything except `false`,
+  `nil`, or an empty table `{}`.  The material in `...` may
+  contain variables, surrounded by `$` as above.
+
+* `$if(author)$...$else$---$endif$` will be
+  replaced by the material in `...` if `author` has a truish
+  value, and by the material in `---` otherwise.
+
+* `$for(author)$...$author$...$endfor$` is a loop,
+  producing successive copies of `...$author$...` with
+  `$author$` replaced, in each occurrence, with a
+  different value from the table `author`.  If `author`
+  is not a table but is truish, one copy of the contents
+  will be produced.  If `author` is an empty table or is
+  falsish, nothing will be produced.
+
+* `$for(author)$...$author$...$sep$---$endfor$` is like
+  the above, except that the string `---` is inserted between
+  each copy.
+
+* If a newline occurs after `$if(variable)$`, it is ignored
+  (as is a newline before `$else$`, and before and after
+  `$endif$`).  The point of this is to allow authors to make
+  templates more readable without introducing spurious
+  blank lines into the rendered document.
+
+* Similarly, if a newline occurs after `$for(variable)$`, it is
+  ignored (as is a newline before `$sep$`, and before and after
+  `$endfor$`).
 
 Some sample templates are provided in `templates/`.
 
