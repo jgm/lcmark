@@ -113,4 +113,10 @@ local body, meta, msg = lcmark.convert("[link](u) and <http://example.com>", "ht
 is(body, "<p><a href=\"u\">link</a> (link #1) and <a href=\"http://example.com\">http://example.com</a> (link #2)</p>\n<p>2 links found in this html document.</p>\n", "added link numbers and count")
 is(meta.number_of_links, "2", "added metadata field number_of_links")
 
+local include = lcmark.load_filter("filters/include.lua")
+ok(count_links, "loaded filter include.lua")
+local body, meta, msg = lcmark.convert('``` make include="Makefile"\ncontents to ignore\n```', 'html', {filters = {include}})
+like(body, '<pre><code.*&quot;.*</code></pre>')
+
+
 done_testing()
