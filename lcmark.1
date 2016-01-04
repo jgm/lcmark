@@ -2,7 +2,7 @@
 .SH
 NAME
 .PP
-lcmark \- command line CommonMark parser and renderer
+lcmark \- flexible command line CommonMark parser and renderer
 .SH
 SYNOPSIS
 .PP
@@ -10,10 +10,20 @@ lcmark [options] [file..]
 .SH
 DESCRIPTION
 .PP
-TODO description here.
-.PP
-TODO for options, create a filter that makes these look right in
-man.
+\f[C]lcmark\f[] does what the \f[C]cmark\f[] (https://github.com/jgm/cmark)
+program does, with the following enhancements:
+.IP \[bu] 2
+Support for \f[B]YAML metadata\f[] at the top of the document.
+The metadata is parsed as CommonMark and returned in
+a table (dictionary) that will set template variables.
+.IP \[bu] 2
+Support for \f[B]templates\f[], which add headers
+and footers around the body of the document, and can
+include variables defined in the metadat.
+.IP \[bu] 2
+Support for \f[B]filters\f[], which allow the document to be
+transformed between parsing and rendering, making possible
+a large number of customizations.
 .SH
 OPTIONS
 .PP
@@ -71,25 +81,72 @@ This message
 .SH
 TEMPLATES
 .PP
-By default, lcmark will produce a fragment. If the
-\f[C]\-\-template\f[] option is specified, it will insert
-this fragment into a template, producing a standalone document with
-appropriate header and footer. The template is
-sought first in the working directory, then in
-\f[C]templates\f[], and finally in \f[C]$HOME/lcmark/templates\f[]. If no
-extension is given, the name of the writer will be used as an
-extension. So, for example, one can put the template \f[C]letter.html\f[]
-in the \f[C]$HOME/lcmark/templates\f[] directory, and use it anywhere
-with \f[C]lcmark \-\-template letter\f[].
-.PP
-The templates are Lust (https://github.com/weshoke/Lust) templates.
-TODO describe.
+By default, lcmark will produce a fragment. If the \f[C]\-\-template\f[]
+option is specified, it will insert this fragment into a
+template, producing a standalone document with appropriate
+header and footer. The template is sought first in the working
+directory, then in \f[C]templates\f[], and finally in
+\f[C]$HOME/lcmark/templates\f[]. If no extension is given, the name of
+the writer will be used as an extension. So, for example, one
+can put the template \f[C]letter.html\f[] in the
+\f[C]$HOME/lcmark/templates\f[] directory, and use it anywhere with
+\f[C]lcmark \-\-template letter\f[].
 .PP
 Variables are taken from YAML metadata; the fields are interpreted
 as CommonMark and rendered appropriately for the output format.
 The following additional variables are set automatically:
 .IP \[bu] 2
 \f[C]body\f[]: the document body
+.PP
+\f[C]lcmark\f[] uses the same templating language as
+pandoc (http://pandoc.org), and pandoc templates can be
+used with \f[C]lcmark\f[] (with the caveat that pandoc sets many
+variables automatically which \f[C]lcmark\f[] does not). A short
+guide:
+.IP \[bu] 2
+The only special character in templates is \f[C]$\f[]. To get
+a literal \f[C]$\f[] character, use \f[C]$$\f[].
+.IP \[bu] 2
+\f[C]$title$\f[] will be replaced with the value of the \f[C]title\f[]
+metadata field, interpreted as CommonMark and rendered into
+the target format. Variable names can contain alphanumerics,
+\f[C]\-\f[], and \f[C]_\f[].
+.IP \[bu] 2
+\f[C]$author.name$\f[] will be replaced with the \f[C]author\f[] field
+of the \f[C]name\f[] metadata field (assumed to be a map).
+.IP \[bu] 2
+\f[C]$if(author)$...$endif$\f[] will be
+replaced by the material in \f[C]...\f[] if \f[C]author\f[] has a
+"truish" value, otherwise by nothing.
+Truish values are everything except \f[C]false\f[],
+\f[C]nil\f[], or an empty table \f[C]{}\f[]. The material in \f[C]...\f[] may
+contain variables, surrounded by \f[C]$\f[] as above.
+.IP \[bu] 2
+\f[C]$if(author)$...$else$\-\-\-$endif$\f[] will be
+replaced by the material in \f[C]...\f[] if \f[C]author\f[] has a truish
+value, and by the material in \f[C]\-\-\-\f[] otherwise.
+.IP \[bu] 2
+\f[C]$for(author)$...$author$...$endfor$\f[] is a loop,
+producing successive copies of \f[C]...$author$...\f[] with
+\f[C]$author$\f[] replaced, in each occurrence, with a
+different value from the table \f[C]author\f[]. If \f[C]author\f[]
+is not a table but is truish, one copy of the contents
+will be produced. If \f[C]author\f[] is an empty table or is
+falsish, nothing will be produced.
+.IP \[bu] 2
+\f[C]$for(author)$...$author$...$sep$\-\-\-$endfor$\f[] is like
+the above, except that the string \f[C]\-\-\-\f[] is inserted between
+each copy.
+.IP \[bu] 2
+If a newline occurs after \f[C]$if(variable)$\f[], it is ignored
+(as is a newline before \f[C]$else$\f[], and before and after
+\f[C]$endif$\f[]). The point of this is to allow authors to make
+templates more readable without introducing spurious
+blank lines into the rendered document.
+.IP \[bu] 2
+Similarly, if a newline occurs after \f[C]$for(variable)$\f[], it is
+ignored (as is a newline before \f[C]$sep$\f[], and before and after
+\f[C]$endfor$\f[]).
 .SH
 FILTERS
 .PP
@@ -127,14 +184,11 @@ concatenates them, and converts the result from markdown to LaTeX.
 .IP
 .nf
 \f[C]
-lcmark \-\-template letter \-d cc=Smith,cc="Jim Jones",sign="yes" \e
-  \-t latex \-o myletter.tex myletter.txt
+lcmark \-\-template letter \-t latex \-o myletter.tex myletter.txt
 \f[]
 .fi
 .PP
-produces a LaTeX file using the template \f[C]letter.latex\f[],
-and setting the variable \f[C]cc\f[] to \f[C]{"Smith","Jim Jones"}\f[]
-and \f[C]sign\f[] to \f[C]"yes"\f[].
+produces a LaTeX file using the template \f[C]letter.latex\f[].
 
 .SH AUTHORS
 John MacFarlane
