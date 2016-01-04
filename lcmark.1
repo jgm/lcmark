@@ -43,7 +43,8 @@ formats. The default is 0 = no wrapping.
 .PP
 \f[C]\-\-filter,\-F\f[] \f[I]file[,file]\f[]
 .PP
-Filter the parsed AST using a lua script. TODO details.
+Filter the parsed AST using a lua script. See FILTERS
+below for details.
 .PP
 \f[C]\-\-template,\-T\f[] \f[I]file\f[]
 .PP
@@ -150,7 +151,22 @@ ignored (as is a newline before \f[C]$sep$\f[], and before and after
 .SH
 FILTERS
 .PP
-TODO
+Filters modify the parsed document prior to rendering.
+.PP
+A filter is a function that takes three arguments ('doc',
+\&'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
+lua table whose leaf nodes are cmark nodes, and 'to' is a string
+specifying the output format. The function may destructively
+modify 'doc' and 'meta'.
+.PP
+For examples, see the \f[C]filters/\f[] directory in the source
+repository.
+.PP
+The arguments to \f[C]\-\-filter\f[] should be lua scripts that \f[C]return\f[]
+a filter function, as defined above. Filters will be run in the
+order listed. Filters are applied to the root document node,
+not to metadata (although a filter can operate on metadata if
+desired).
 .SH
 EXAMPLES
 .IP
