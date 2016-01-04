@@ -2,7 +2,8 @@
 -- It adds a parenthetical message after each link,
 -- numbering the link.
 -- It also adds a paragraph to the end of the document that
--- states how many links the document contains.
+-- states how many links the document contains, and a
+-- metadata field number_of_links.
 
 -- A filter is a lua program that returns a function
 -- whose arguments are a cmark node, a metadata tree
@@ -34,6 +35,11 @@ return function(doc, meta, format)
    node_set_literal(t, string.format("%d links found in this %s document.", links, format))
    node_append_child(p, t)
    node_append_child(doc, p)
+
+   -- For good measure, let's add a number_of_links metadata
+   -- field:
+   meta.number_of_links = node_new(NODE_TEXT)
+   node_set_literal(meta.number_of_links, tostring(links))
 
 end
 
