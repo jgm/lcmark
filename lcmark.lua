@@ -349,7 +349,9 @@ function lcmark.convert(inp, to, options)
     return nil, nil, "Unable to parse document"
   end
   for _, f in ipairs(filters) do
-    walk_table(meta, function(node) f(node, meta, to) end, true)
+    -- do we want filters to apply automatically to metadata?
+    -- better to let users do this manually when they want to.
+    -- walk_table(meta, function(node) f(node, meta, to) end, true)
     f(doc, meta, to)
   end
   local body = writer(doc, opts, columns)
