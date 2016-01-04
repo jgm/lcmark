@@ -101,6 +101,11 @@ local badfilter, msg = lcmark.load_filter("filters/bad_filter2.lua")
 nok(badfilter, "load_filter fails when script doesn't return a function")
 is(msg, "Filter filters/bad_filter2.lua returns a table, not a function", "error message on filter not returning a function")
 
+local badfilter, msg = lcmark.load_filter("filters/bad_filter3.lua")
+local doc, meta, msg = lcmark.convert("test", "html", {filters = {badfilter}})
+nok(doc, "trap runtime error raised by filter")
+is(msg, "Error running filter:\nfilters/bad_filter3.lua:2: attempt to perform arithmetic on local 'doc' (a userdata value)", "error message on runtime error from filter")
+
 local count_links = lcmark.load_filter("filters/count_links.lua")
 ok(count_links, "loaded filter count_links.lua")
 

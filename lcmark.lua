@@ -352,7 +352,7 @@ function lcmark.convert(inp, to, options)
     -- do we want filters to apply automatically to metadata?
     -- better to let users do this manually when they want to.
     -- walk_table(meta, function(node) f(node, meta, to) end, true)
-    ok, msg = pcall(function() f(doc, meta, to) end)
+    local ok, msg = pcall(function() f(doc, meta, to) end)
     if not ok then
       return nil, nil, ("Error running filter:\n" .. msg)
     end
