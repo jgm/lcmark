@@ -157,7 +157,14 @@ end
 
 local body, data, msg = lcmark.convert(inp, to, options)
 if body then
-  local template = find_template(optarg.T, to)
+  local template = nil
+  if optarg.T then
+    template = find_template(optarg.T, to)
+    if not template then
+      err("Could not find template " .. optarg.T .. " for output format " ..
+           to)
+    end
+  end
   if template then
     data.body = body
     local rendered, msg = lcmark.render_template(template, data)
