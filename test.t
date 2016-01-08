@@ -5,7 +5,7 @@ package.path = "./?.lua;" .. package.path
 package.cpath = "./?.so;" .. package.cpath
 
 local lcmark = require 'lcmark'
-local tests = require 'spec-tests'
+local tests = require 'tests/spec-tests'
 
 subtest("spec tests (lcmark)", function()
   for _,test in ipairs(tests) do
