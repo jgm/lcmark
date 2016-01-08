@@ -1,7 +1,8 @@
 package = "lcmark"
 version = "0.23.0-3"
 source = {
-    url = "https://github.com//jgm/lcmark/archive/0.23.0.tar.gz"
+    url = "git://github.com/jgm/lcmark",
+    tag = "0.23.0"
 }
 description = {
     summary = [[A command-line CommonMark converter with flexible
