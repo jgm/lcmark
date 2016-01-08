@@ -17,7 +17,7 @@ description = {
       (3) Support for filters, which allow the document to be
       transformed between parsing and rendering, making possible
       a large number of customizations.]],
-    homepage = "https://github.com/jgm/cmark-lua",
+    homepage = "https://github.com/jgm/lcmark",
     license = "BSD2",
     maintainer = "John MacFarlane <jgm@berkeley.edu>",
 }
