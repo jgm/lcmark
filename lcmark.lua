@@ -292,8 +292,13 @@ lcmark.compile_template = function(tpl)
       return matches[1]
     end
   else
-    return nil, ("parse failure at position " .. tostring(matches[2]) ..
-                  ": '" .. string.sub(tpl, matches[2], matches[2] + 20) .. "'")
+    local line_num = 1
+    local parse_failure_pos = matches[2]
+    tpl:sub(1,parse_failure_pos):gsub('[^\n]*[\n]',
+            function() line_num = line_num + 1 end)
+    return nil, ("parse failure at line " .. line_num ..
+                  ": '" .. string.sub(tpl, parse_failure_pos,
+                                      parse_failure_pos + 40) .. "'")
   end
 end
 
