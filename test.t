@@ -20,7 +20,7 @@ local render_template = lcmark.render_template
 subtest("template tests", function()
   local res, msg = render_template("$", {})
   is(res, nil, "unescaped $")
-  is(msg, "parse failure at position 1: '$'", "error message for parse failure")
+  is(msg, "parse failure at line 1: '$'", "error message for parse failure")
   is(render_template("foo$$bar$$baz", {}),
     "foo$bar$baz", "escaped $")
   is(render_template("foo $bar$", {bar = "bim"}),
