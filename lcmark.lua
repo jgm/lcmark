@@ -2,6 +2,11 @@ local cmark = require("cmark")
 local yaml = require("yaml")
 local lpeg = require("lpeg")
 
+local S, C, P, R, V, Ct, Carg =
+  lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
+local nl = P"\r\n" + P"\r" + P"\n"
+local sp = S" \t"^0
+
 local lcmark = {}
 
 lcmark.version = "0.23.0"
@@ -108,18 +113,20 @@ local convert_metadata = function(table, options)
                     end, false)
 end
 
+local yaml_begin_line = P"---" * sp * nl
+local yaml_end_line = (P"---" + P"...") * sp * nl
+local yaml_content_line = -yaml_end_line * P(1 - S"\r\n")^0 * nl
+local yaml_block = yaml_begin_line * (yaml_content_line^1 + sp) * yaml_end_line
+
 -- Parses document with optional front YAML metadata; returns document,
 -- metadata.
 local parse_document_with_metadata = function(inp, options)
   local metadata = {}
-  if string.find(inp, '^---[\r\n]') then
-    local _, endlast = string.find(inp, '[\r\n]...[ \t]*[\r\n][\r\n\t ]*', 3)
-    if not endlast then
-      local _, endlast = string.find(inp, '[\r\n]---[ \t]*[\r\n][\r\n\t ]*', 3)
-    end
-    if endlast then
+  local meta_end = lpeg.match(yaml_block, inp)
+  if meta_end then
+    if meta_end then
       local ok, yaml_meta = pcall(function ()
-                              return yaml.load(string.sub(inp, 1, endlast))
+                              return yaml.load(string.sub(inp, 1, meta_end))
                             end)
       if not ok then
         return nil, yaml_meta -- the error message
@@ -130,8 +137,8 @@ local parse_document_with_metadata = function(inp, options)
           metadata = {}
         end
         -- We insert blank lines where the header was, so sourcepos is accurate:
-        inp = string.gsub(string.sub(inp, 1, endlast - 1), '[^\n\r]+', '') ..
-           string.sub(inp, endlast)
+        inp = string.gsub(string.sub(inp, 1, meta_end), '[^\n\r]+', '') ..
+           string.sub(inp, meta_end)
       end
     end
   end
@@ -239,9 +246,6 @@ local forloop = function(var, inner, sep)
 end
 
 -- Template syntax.
-local S, C, P, R, V, Ct, Carg =
-  lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
-local nl = P"\r\n" + P"\r" + P"\n"
 local TemplateGrammar = Ct{"Main",
   Main = V"Template" * (-1 + lpeg.Cp()),
   Template = Ct((V"Text" +
