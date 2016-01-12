@@ -180,6 +180,7 @@ The module exports
     - `sourcepos` - include source position in HTML, XML output
     - `filters` - an array of filters to run (see `load_filter` above)
     - `columns` - column width, or 0 to preserve wrapping in input
+    - `yaml_metadata` - parse initial YAML metadata block
 
     Returns `body`, `meta` on success (where `body` is the
     rendered document body and `meta` is a metatable table whose
