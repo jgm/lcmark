@@ -3,6 +3,8 @@
 -- styles needed for the output format are put in
 -- the metadata field highlighting_styles
 
+local b = require('cmark.builder')
+
 local highlight = function(code, syntax, format)
   local tmpname = os.tmpname()
   io.output(tmpname)
@@ -32,17 +34,13 @@ return function(doc, meta, to)
         local highlighted = highlight(contents, syntax, to)
 
         if not meta.highlighting_styles then
-          local style_node = node_new(NODE_CUSTOM_BLOCK)
-          local styles = style_defs(syntax, to)
-          node_set_on_enter(style_node, styles)
-          meta.highlighting_styles = style_node
+          meta.highlighting_styles = b.custom_block{
+                  on_enter = style_defs(syntax, to)
+                }
         end
 
         -- now run this through pygmentize and insert a raw_block with output
-        local raw = node_new(NODE_CUSTOM_BLOCK)
-        node_set_on_enter(raw, highlighted)
-        node_insert_before(cur, raw)
-        node_unlink(cur)
+        node_replace(cur, b.custom_block{ on_enter = highlighted })
         node_free(cur)
       end
     end

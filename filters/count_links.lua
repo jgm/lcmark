@@ -1,3 +1,5 @@
+local b = require('cmark.builder')
+
 -- This is a sample filter using the cmark API in lua.
 -- It adds a parenthetical message after each link,
 -- numbering the link.
@@ -19,8 +21,7 @@ return function(doc, meta, format)
       if node_type == NODE_LINK and not entering then
           links = links + 1
           -- insert " (link #n)" after the link:
-          local t = node_new(NODE_TEXT)
-          node_set_literal(t, string.format(" (link #%d)", links))
+          local t = b.text(string.format(" (link #%d)", links))
           node_insert_after(cur, t)
       end
    end
@@ -30,16 +31,13 @@ return function(doc, meta, format)
    -- found.  We'll need to create a paragraph node,
    -- and a text node to go in it, and we'll add the
    -- text as the literal content of the text node.
-   local p = node_new(NODE_PARAGRAPH)
-   local t = node_new(NODE_TEXT)
-   node_set_literal(t, string.format("%d links found in this %s document.", links, format))
-   node_append_child(p, t)
-   node_append_child(doc, p)
+   node_append_child(doc, b.paragraph{
+       b.text(string.format("%d links found in this %s document.",
+                            links, format))})
 
    -- For good measure, let's add a number_of_links metadata
    -- field:
-   meta.number_of_links = node_new(NODE_TEXT)
-   node_set_literal(meta.number_of_links, tostring(links))
+   meta.number_of_links = b.text(links)
 
 end
 
