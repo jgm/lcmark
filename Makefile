@@ -1,5 +1,6 @@
 LCMARK_ROCKSPEC=$(lastword $(sort $(wildcard rockspecs/lcmark-*.rockspec)))
 TESTS=tests
+CMARK_DIR=../cmark
 
 .PHONY: clean, test, all, rock, update
 
@@ -13,8 +14,8 @@ rock:
 
 update: $(TESTS)/spec-tests.lua
 
-$(TESTS)/spec-tests.lua:
-	python3 $(CMARK_DIR)/test/spec_tests.py -d --spec $(CMARK_DIR)/test/spec.txt | sed -e 's/^\([ \t]*\)"\([^"]*\)":/\1\2 = /' | sed -e 's/^\[/return {/' | sed -e 's/^\]/}/' > $@
+$(TESTS)/spec-tests.lua: $(CMARK_DIR)/test/spec.txt
+	python3 $(CMARK_DIR)/test/spec_tests.py -d --spec $< | sed -e 's/^\([ \t]*\)"\([^"]*\)":/\1\2 = /' | sed -e 's/^\[/return {/' | sed -e 's/^\]/}/' > $@
 
 test:
 	prove test.t
