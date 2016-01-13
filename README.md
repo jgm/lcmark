@@ -199,3 +199,7 @@ You'll need the `prove` executable and the `lua-TestMore` rock.
 `make update` will update the and spec test from the
 `../cmark` directory.
 
+`make -C standalone` will create a fully self-contained version
+of `lcmark` which embeds the lua interpreter and all required
+libraries, and has no external dependencies.
+
