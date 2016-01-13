@@ -22,6 +22,7 @@ $(LUASTATIC): $(LUADIR)
 	# note: LUA_USE_LINUX is recommended for linux, osx, freebsd
 
 $(AMALGAMATED): $(LCMARK_DIR)/bin/lcmark
+	amalg.lua || (echo "You need to 'luarocks install amalg'" && exit 1)
 	echo "amalgamating..." | lua -lamalg $<
 	amalg.lua -s $< -c -x | sed -e '1,2d' > $@
 
