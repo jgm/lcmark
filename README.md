@@ -137,7 +137,8 @@ lua table whose leaf nodes are cmark nodes, and 'to' is a string
 specifying the output format.  The function may destructively
 modify 'doc' and 'meta'.
 
-Some sample filters are provided in [`filters/`](./tree/master/filters).
+Some sample filters are provided in
+[`filters/`](https://github.com/jgm/lcmark/tree/master/filters).
 
 lcmark (module)
 -----------------
