@@ -1,18 +1,25 @@
+# Change PLATFORM for your platform
+
+# Note that this currently only works with lua 5.2.
+# Lua 5.3 doesn't like the use of 'module' in alt_getopt.lua.
+# We could easily include a slightly customized version of
+# alt_getopt.lua to work around this limitation.
+
+# Note also that the produced binary can't be stripped!
+
 PLATFORM?=macosx
 LUATARBALL=http://www.lua.org/ftp/lua-5.2.4.tar.gz
 COPTS=-O2 -DNDEBUG -Wall -Wextra -pedantic
 LUADIR=$(shell echo $(LUATARBALL) | sed -e 's/.*\(lua-.*\)\.tar\.gz/\1/')
 LUASTATIC=$(LUADIR)/src/liblua.a
 AMALGAMATED=lcmark_amalgamated.lua
-PROG ?= ./lcmark-standalone
+PROG ?= ./lcmark
 LCMARK_DIR = ..
 
 .PHONY : all test distclean clean
 
 $(PROG): main.c $(AMALGAMATED).embed $(LUASTATIC)
 	$(CC) $(COPTS) -I$(LUADIR)/src -L$(LUADIR)/src -o $@ $< $(LUASTATIC)
-	#$(OBJS) # -llua -lm -ldl
-	#TODO
 
 %.embed: %
 	xxd -i $< > $@
