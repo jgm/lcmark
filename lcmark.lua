@@ -2,8 +2,8 @@ local cmark = require("cmark")
 local yaml = require("yaml")
 local lpeg = require("lpeg")
 
-local S, C, P, R, V, Ct, Carg =
-  lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct, lpeg.Carg
+local S, C, P, R, V, Ct =
+  lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct
 local nl = P"\r\n" + P"\r" + P"\n"
 local sp = S" \t"^0
 
@@ -12,9 +12,9 @@ local lcmark = {}
 lcmark.version = "0.24.0"
 
 lcmark.writers = {
-  html = function(d, opts, _cols) return cmark.render_html(d, opts) end,
+  html = function(d, opts, _) return cmark.render_html(d, opts) end,
   man = cmark.render_man,
-  xml = function(d, opts, _cols) return cmark.render_xml(d, opts) end,
+  xml = function(d, opts, _) return cmark.render_xml(d, opts) end,
   latex = cmark.render_latex,
   commonmark = cmark.render_commonmark
 }
@@ -142,7 +142,7 @@ local parse_document_with_metadata = function(inp, options)
       end
     end
   end
-  doc = cmark.parse_string(inp, options)
+  local doc = cmark.parse_string(inp, options)
   return doc, metadata
 end
 
@@ -153,7 +153,6 @@ function lcmark.apply_template(m, ctx)
     return m(ctx)
   elseif type(m) == 'table' then
     local buffer = {}
-    local i
     for i,v in ipairs(m) do
       buffer[i] = lcmark.apply_template(v, ctx)
     end
@@ -308,7 +307,7 @@ end
 
 -- Compiles and applies a template in one function.
 function lcmark.render_template(tpl, ctx)
-  compiled_template, msg = lcmark.compile_template(tpl)
+  local compiled_template, msg = lcmark.compile_template(tpl)
   if not compiled_template then
     return nil, msg
   end
