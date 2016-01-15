@@ -18,7 +18,7 @@ $(TESTS)/spec-tests.lua: $(CMARK_DIR)/test/spec.txt
 	python3 $(CMARK_DIR)/test/spec_tests.py -d --spec $< | sed -e 's/^\([ \t]*\)"\([^"]*\)":/\1\2 = /' | sed -e 's/^\[/return {/' | sed -e 's/^\]/}/' > $@
 
 test:
-	prove test.t
+	busted test.lua
 
 clean:
 	rm -rf *.o $(CBITS)/*.o
