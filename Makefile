@@ -21,7 +21,7 @@ check:
 	luacheck bin/lcmark lcmark.lua
 
 test: check
-	busted test.lua
+	prove test.t
 
 clean:
 	rm -rf *.o $(CBITS)/*.o
