@@ -20,7 +20,7 @@ $(TESTS)/spec-tests.lua: $(CMARK_DIR)/test/spec.txt
 check:
 	luacheck bin/lcmark lcmark.lua
 
-test:
+test: check
 	busted test.lua
 
 clean:
