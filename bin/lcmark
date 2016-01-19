@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 
 -- package.path='./?.lua;' .. package.path -- UNCOMMENT FOR TESTING
-local alt_getopt = require("alt_getopt")
+local optparse = require("optparse")
 local lcmark = require("lcmark")
 
 local function err(msg, exit_code)
@@ -54,59 +54,54 @@ local find_template = function(name, to)
   end
 end
 
+local spec = [[
+lcmark ]] .. lcmark.version .. [[
 
-local usage = [[
-Usage: lcmark [options] [file..] - convert markdown to other formats
+https://github.com/jgm/lcmark
+
+Usage: lcmark [options] [file..]
+
+Convert markdown to other formats.
 
 Options:
-  --to,-t FORMAT             Target format
-  --output,-o FILE           Output file
-  --filter,-F FILE,[,FILE]   Lua script to filter AST
-  --template,-T FILE         Insert output into template
-  --columns,c NUMBER         Number of columns to wrap text (or 0 for no wrap)
-  --smart,-S                 Smart punctuation
-  --safe,-s                  Omit HTML and potentially unsafe attributes
-  --hardbreaks,-h            Treat softbreaks as hard line breaks
-  --sourcepos,-p             Include source position information
-  --version,-V               Version information
-  --help,-h                  This message
+
+  -t, --to=FORMAT             Target format
+  -o, --output=FILE           Output file
+  -F, --filter=FILE           Lua script to filter AST
+  -T, --template=FILE         Insert output into template
+  -c, --columns=NUMBER        Number of columns to wrap text (or 0 for no wrap)
+  -S, --smart                 Smart punctuation
+  -s, --safe                  Omit HTML and potentially unsafe attributes
+  -h, --hardbreaks            Treat softbreaks as hard line breaks
+  -p, --sourcepos             Include source position information
+  -V, --version               Version information
+  -h, --help                  This message
 
 FORMAT can be html, latex, man, commonmark, or xml.
 ]]
 
-local long_opts = {
-  to = "t",
-  columns = "c",
-  smart = "S",
-  hardbreaks = "h",
-  sourcepos = "p",
-  safe = "s",
-  output = "o",
-  filter = "F",
-  template = "T",
-  version = "V",
-  help = "h"
-}
+local optparser = optparse(spec)
 
-local short_opts = "t:o:c:F:T:sSphVh"
+_G.arg, _G.opts = optparser:parse(_G.arg)
 
-local optarg,optind = alt_getopt.get_opts(arg, short_opts, long_opts)
-
-if optarg.h then
+--[[
+if opts.help then
   io.write(usage)
   os.exit(0)
 end
-
-if optarg.V then
+--]]
+--[[
+if opts.version then
   io.write("lcmark " .. lcmark.version .. "\nCopyright 2015 John MacFarlane\n")
   os.exit(0)
 end
-
-local to = optarg.t or "html"
+--]]
+--
+local to = opts.to or "html"
 ensure_one_of("--to,-t", to,
   {"commonmark","html","latex","man","xml"})
 
-local output = optarg.o
+local output = opts.output
 local ok, msg
 ok, msg = pcall(function() io.output(output) end)
 if not ok then
@@ -114,17 +109,17 @@ if not ok then
 end
 
 local options = {
-  smart = optarg.S,
-  hardbreaks = optarg.h,
-  safe = optarg.s,
-  sourcepos = optarg.p,
-  columns = optarg.c or 0,
+  smart = opts.smart,
+  hardbreaks = opts.hardbreaks,
+  safe = opts.safe,
+  sourcepos = opts.sourcepos,
+  columns = opts.columns or 0,
   yaml_metadata = true,
   filters = {}
 }
 
-if optarg['F'] then
-  for filter in string.gmatch(optarg['F'], "([^,]+)") do
+if opts.filter then
+  for filter in string.gmatch(opts.filter, "([^,]+)") do
     local f
     f, msg = lcmark.load_filter(filter)
     if f then
@@ -135,17 +130,12 @@ if optarg['F'] then
   end
 end
 
-local args = {}
-for i=optind,#arg do
-  table.insert(args,arg[i])
-end
-
 local inp
-if #args == 0 then
+if #arg == 0 then
   inp = io.read("*all")
 else
   local inpt = {}
-  for _,f in ipairs(args) do
+  for _,f in ipairs(arg) do
     ok, msg = pcall(function() io.input(f) end)
     if ok then
       table.insert(inpt, io.read("*all"))
@@ -160,10 +150,10 @@ local body, data
 body, data, msg = lcmark.convert(inp, to, options)
 if body then
   local template = nil
-  if optarg.T then
-    template = find_template(optarg.T, to)
+  if opts.template then
+    template = find_template(opts.template, to)
     if not template then
-      err("Could not find template " .. optarg.T .. " for output format " ..
+      err("Could not find template " .. opts.template .. " for output format " ..
            to)
     end
   end
@@ -174,7 +164,7 @@ if body then
     if rendered then
       io.write(rendered)
     else
-      err("Could not render template " .. optarg.T .. ":\n" .. msg)
+      err("Could not render template " .. opts.template .. ":\n" .. msg)
     end
   else
     io.write(body)
