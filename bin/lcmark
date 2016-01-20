@@ -84,19 +84,6 @@ local optparser = optparse(spec)
 
 _G.arg, _G.opts = optparser:parse(_G.arg)
 
---[[
-if opts.help then
-  io.write(usage)
-  os.exit(0)
-end
---]]
---[[
-if opts.version then
-  io.write("lcmark " .. lcmark.version .. "\nCopyright 2015 John MacFarlane\n")
-  os.exit(0)
-end
---]]
---
 local to = opts.to or "html"
 ensure_one_of("--to,-t", to,
   {"commonmark","html","latex","man","xml"})
