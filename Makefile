@@ -1,4 +1,6 @@
-LCMARK_ROCKSPEC=$(lastword $(sort $(wildcard rockspecs/lcmark-*.rockspec)))
+VERSION=0.24.1
+REVISION=1
+ROCKSPEC=lcmark-$(VERSION)-$(REVISION).rockspec
 TESTS=tests
 CMARK_DIR=../cmark
 
@@ -9,8 +11,11 @@ all: rock lcmark.1
 lcmark.1: lcmark.1.md templates/default.man
 	bin/lcmark -t man --template templates/default.man -o $@ $<
 
-rock:
-	luarocks --local make $(LCMARK_ROCKSPEC)
+$(ROCKSPEC): rockspec.in
+	sed -e "s/_VERSION/$(VERSION)/g; s/_REVISION/$(REVISION)/g" $< > $@
+
+rock: $(ROCKSPEC)
+	luarocks --local make $(ROCKSPEC)
 
 update: $(TESTS)/spec-tests.lua
 
@@ -24,4 +29,4 @@ test: check
 	prove test.t
 
 clean:
-	rm -rf *.o $(CBITS)/*.o
+	rm -rf *.o $(CBITS)/*.o $(ROCKSPEC)
