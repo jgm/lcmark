@@ -82,7 +82,8 @@ FORMAT can be html, latex, man, commonmark, or xml.
 
 local optparser = optparse(spec)
 
-_G.arg, _G.opts = optparser:parse(_G.arg)
+local opts
+_G.arg, opts = optparser:parse(_G.arg)
 
 local to = opts.to or "html"
 ensure_one_of("--to,-t", to,
