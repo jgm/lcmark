@@ -17,6 +17,9 @@ $(ROCKSPEC): rockspec.in
 rock: $(ROCKSPEC)
 	luarocks --local make $(ROCKSPEC)
 
+upload: rock
+	luarocks upload --api-key=$(LUAROCKS_API_KEY) $(ROCKSPEC)
+
 update: $(TESTS)/spec-tests.lua
 
 $(TESTS)/spec-tests.lua: $(CMARK_DIR)/test/spec.txt
