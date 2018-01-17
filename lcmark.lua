@@ -9,7 +9,7 @@ local sp = S" \t"^0
 
 local lcmark = {}
 
-lcmark.version = "0.24.0"
+lcmark.version = "0.27.0"
 
 lcmark.writers = {
   html = function(d, opts, _) return cmark.render_html(d, opts) end,
