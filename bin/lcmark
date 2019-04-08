@@ -71,7 +71,7 @@ Options:
   -T, --template=FILE         Insert output into template
   -c, --columns=NUMBER        Number of columns to wrap text (or 0 for no wrap)
   -S, --smart                 Smart punctuation
-  -s, --safe                  Omit HTML and potentially unsafe attributes
+  -u, --unsafe                Suppress HTML and potentially unsafe attributes
   -h, --hardbreaks            Treat softbreaks as hard line breaks
   -p, --sourcepos             Include source position information
   -V, --version               Version information
@@ -99,7 +99,7 @@ end
 local options = {
   smart = opts.smart,
   hardbreaks = opts.hardbreaks,
-  safe = opts.safe,
+  safe = not opts.unsafe,
   sourcepos = opts.sourcepos,
   columns = opts.columns or 0,
   yaml_metadata = true,

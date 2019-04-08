@@ -9,7 +9,7 @@ local sp = S" \t"^0
 
 local lcmark = {}
 
-lcmark.version = "0.28.3"
+lcmark.version = "0.29.0"
 
 lcmark.writers = {
   html = function(d, opts, _) return cmark.render_html(d, opts) end,
@@ -23,7 +23,7 @@ local toOptions = function(opts)
   if type(opts) == 'table' then
     return (cmark.OPT_VALIDATE_UTF8 + cmark.OPT_NORMALIZE +
       (opts.smart and cmark.OPT_SMART or 0) +
-      (opts.safe and cmark.OPT_SAFE or 0) +
+      (opts.safe and 0 or cmark.OPT_UNSAFE) +
       (opts.hardbreaks and cmark.OPT_HARDBREAKS or 0) +
       (opts.sourcepos and cmark.OPT_SOURCEPOS or 0)
       )
