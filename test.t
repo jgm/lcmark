@@ -95,7 +95,7 @@ is(msg, "cannot open nonexistent.lua: No such file or directory", "message on no
 
 local badfilter, msg = lcmark.load_filter("tests/bad_filter.lua")
 nok(badfilter, "load_filter fails on bad filter")
-is(msg, "tests/bad_filter.lua:2: <name> expected near '('", "error message on bad filter")
+like(msg, "tests/bad_filter%.lua:2: '?<name>'? expected near '%('", "error message on bad filter")
 
 local badfilter, msg = lcmark.load_filter("tests/bad_filter2.lua")
 nok(badfilter, "load_filter fails when script doesn't return a function")
@@ -104,7 +104,7 @@ is(msg, "Filter tests/bad_filter2.lua returns a table, not a function", "error m
 local badfilter, msg = lcmark.load_filter("tests/bad_filter3.lua")
 local doc, meta, msg = lcmark.convert("test", "html", {filters = {badfilter}})
 nok(doc, "trap runtime error raised by filter")
-is(msg, "Error running filter:\ntests/bad_filter3.lua:2: attempt to perform arithmetic on a userdata value (local 'doc')", "error message on runtime error from filter")
+like(msg, "Error running filter:\ntests/bad_filter3%.lua:2: attempt to perform arithmetic on .*local 'doc'", "error message on runtime error from filter")
 
 local count_links = lcmark.load_filter("filters/count_links.lua")
 ok(count_links, "loaded filter count_links.lua")
