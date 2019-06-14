@@ -54,9 +54,27 @@ end
 
 -- We inject cmark into environment where filters are
 -- run, so users don't need to qualify each function with 'cmark.'.
-local defaultEnv = _ENV
+local defaultEnv = setmetatable({}, { __index = _G })
 for k,v in pairs(cmark) do
   defaultEnv[k] = v
+end
+
+local loadfile_with_env
+if setfenv then
+  -- Lua 5.1/LuaJIT
+  loadfile_with_env = function(filename)
+    local result, msg = loadfile(filename)
+    if result then
+      return setfenv(result, defaultEnv)
+    else
+      return result, msg
+    end
+  end
+else
+  -- Lua 5.2+
+  loadfile_with_env = function(filename)
+    return loadfile(filename, 't', defaultEnv)
+  end
 end
 
 -- Create a filter from a script.  A filter is
@@ -69,7 +87,7 @@ end
 -- If successful, 'load_filter' returns the filter,
 -- otherwise it returns nil and an error message,
 function lcmark.load_filter(filename)
-  local result, msg = loadfile(filename, 't', defaultEnv)
+  local result, msg = loadfile_with_env(filename)
   if result then
     local evaluated = result()
     if type(evaluated) == 'function' then
