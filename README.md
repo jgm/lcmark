@@ -151,11 +151,11 @@ local body, metadata = lcmark.convert("Hello *world*",
                          "latex", {smart = true, columns = 40})
 ```
 
-The module exports
+The module exports:
 
-`lcmark.version`: a string with the version number.
+-   `lcmark.version`: a string with the version number.
 
-`lcmark.writers`: a table with strings as keys (`html`, `latex`,
+-   `lcmark.writers`: a table with strings as keys (`html`, `latex`,
     `man`, `xml`, `commonmark`) and renderers as values.  A
     renderer is a function that takes three arguments (a
     cmark node, cmark options (a number), and a column width
@@ -187,6 +187,14 @@ The module exports
     rendered document body and `meta` is a metatable table whose
     leaf values are rendered subdocuments), or `nil, nil, msg` on
     failure.
+
+-   `lcmark.set_yaml_loader(yaml_loader_fn)`:
+    Configure the function used to parse YAML metadata. `yaml_loader_fn` must
+    be a function that takes a valid YAML string and returns a Lua table
+    representation of the YAML structure.
+
+    Defaults to `yaml.load` from
+    [yaml](https://luarocks.org/modules/gaspard/yaml).
 
 For developers
 --------------

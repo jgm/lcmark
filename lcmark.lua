@@ -1,11 +1,15 @@
 local cmark = require("cmark")
-local yaml = require("yaml")
 local lpeg = require("lpeg")
 
 local S, C, P, R, V, Ct =
   lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct
 local nl = P"\r\n" + P"\r" + P"\n"
 local sp = S" \t"^0
+
+local yaml_loader = function(str)
+  local yaml = require("yaml")
+  return yaml.load(str)
+end
 
 local lcmark = {}
 
@@ -144,7 +148,7 @@ local parse_document_with_metadata = function(inp, options)
   if meta_end then
     if meta_end then
       local ok, yaml_meta = pcall(function ()
-                              return yaml.load(string.sub(inp, 1, meta_end))
+                              return yaml_loader(string.sub(inp, 1, meta_end))
                             end)
       if not ok then
         return nil, yaml_meta -- the error message
@@ -393,6 +397,10 @@ function lcmark.convert(inp, to, options)
   cmark.node_free(doc)
   walk_table(meta, cmark.node_free, true)
   return body, data
+end
+
+function lcmark.set_yaml_loader(yaml_loader_fn)
+  yaml_loader = yaml_loader_fn
 end
 
 return lcmark
