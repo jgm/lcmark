@@ -1,5 +1,5 @@
 VERSION=0.29.0
-REVISION=4
+REVISION=5
 ROCKSPEC=lcmark-$(VERSION)-$(REVISION).rockspec
 TESTS=tests
 CMARK_DIR=../cmark
