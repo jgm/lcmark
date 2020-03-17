@@ -2,7 +2,7 @@ package = "lcmark"
 version = "_VERSION-_REVISION"
 source = {
     url = "git://github.com/jgm/lcmark",
-    tag = "_VERSION"
+    tag = "_VERSION-_REVISION"
 }
 description = {
     summary = [[A command-line CommonMark converter with flexible
