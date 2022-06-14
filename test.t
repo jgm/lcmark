@@ -27,6 +27,10 @@ subtest("template tests", function()
     "foo bim", "variable")
   is(render_template("foo $bim$", {bar = "bim"}),
     "foo ", "missing variable")
+  is(render_template("foo $bar$", {bar = false}),
+    "foo ", "variable with false")
+  is(render_template("foo $bar$", {bar = {}}),
+    "foo ", "variable with empty table")
   is(render_template("foo $bar.baz$", {bar = { baz = "bim" }}),
     "foo bim", "variable with field")
   is(render_template("foo $bar.baz.bar$", {bar = { baz = "bim" }}),
@@ -35,6 +39,8 @@ subtest("template tests", function()
     "hello", "simple if")
   is(render_template("$if(foo)$hello$endif$", {}),
     "", "simple if with missing variable")
+  is(render_template("$if(foo)$hello$endif$", {foo = {}}),
+    "", "simple if with empty table")
   is(render_template("$if(foo)$hello $foo$$endif$", {foo = true}),
     "hello true", "if with variable")
   is(render_template("$if(foo)$hello$else$goodbye$endif$", {foo = true}),
