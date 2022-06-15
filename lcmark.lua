@@ -212,6 +212,11 @@ local set_value = function(var, newval, ctx)
   return true
 end
 
+local is_truthy = function(val)
+  local is_empty_tbl = type(val) == "table" and #val == 0
+  return val and not is_empty_tbl
+end
+
 -- if s starts with newline, remove initial and final newline
 local trim = function(s)
   if s:match("^[\r\n]") then
@@ -224,7 +229,7 @@ end
 local conditional = function(var, ifpart, elsepart)
   return function(ctx)
     local result
-    if get_value(var, ctx) then
+    if is_truthy(get_value(var, ctx)) then
       result = lcmark.apply_template(ifpart, ctx)
     elseif elsepart then
       result = lcmark.apply_template(elsepart, ctx)
@@ -239,7 +244,7 @@ local forloop = function(var, inner, sep)
   return function(ctx)
     local val = get_value(var, ctx)
     local vs
-    if not val then
+    if not is_truthy(val) then
       return ""
     end
     if type(val) == 'table' then
@@ -293,7 +298,7 @@ local TemplateGrammar = Ct{"Main",
     function(var)
       return function(ctx)
         local val = get_value(var, ctx)
-        if val then
+        if is_truthy(val) then
           return tostring(val)
         else
           return ""
