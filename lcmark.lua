@@ -1,6 +1,6 @@
 local cmark = require("cmark")
-local yaml = require("yaml")
 local lpeg = require("lpeg")
+local yaml -- Will be lazy-loaded if/when required
 
 local S, C, P, R, V, Ct =
   lpeg.S, lpeg.C, lpeg.P, lpeg.R, lpeg.V, lpeg.Ct
@@ -18,6 +18,20 @@ lcmark.writers = {
   latex = cmark.render_latex,
   commonmark = cmark.render_commonmark
 }
+
+local default_yaml_parser = function(...)
+  if not yaml then
+    local success, loaded = pcall(require, "yaml")
+
+    if success then
+      yaml = loaded
+    else
+      error("Failed to load the yaml library. Provide a yaml_parser, or install yaml", 0)
+    end
+  end
+
+  return yaml.load(...)
+end
 
 local toOptions = function(opts)
   if type(opts) == 'table' then
@@ -138,13 +152,13 @@ local yaml_block = yaml_begin_line * (yaml_content_line^1 + sp) * yaml_end_line
 
 -- Parses document with optional front YAML metadata; returns document,
 -- metadata.
-local parse_document_with_metadata = function(inp, options)
+local parse_document_with_metadata = function(inp, parser, options)
   local metadata = {}
   local meta_end = lpeg.match(yaml_block, inp)
   if meta_end then
     if meta_end then
       local ok, yaml_meta = pcall(function ()
-                              return yaml.load(string.sub(inp, 1, meta_end))
+                              return parser(string.sub(inp, 1, meta_end))
                             end)
       if not ok then
         return nil, yaml_meta -- the error message
@@ -354,21 +368,23 @@ function lcmark.convert(inp, to, options)
   if not writer then
     return nil, nil, ("Unknown output format " .. tostring(to))
   end
-  local opts, columns, filters, yaml_metadata
+  local opts, columns, filters, yaml_metadata, yaml_parser
   if options then
      opts = toOptions(options)
      columns = options.columns or 0
      filters = options.filters or {}
      yaml_metadata = options.yaml_metadata
+     yaml_parser = options.yaml_parser or default_yaml_parser
   else
      opts = cmark.OPT_DEFAULT
      columns = 0
      filters = {}
      yaml_metadata = false
+     yaml_parser = default_yaml_parser
   end
   local doc, meta
   if yaml_metadata then
-    doc, meta = parse_document_with_metadata(inp, opts)
+    doc, meta = parse_document_with_metadata(inp, yaml_parser, opts)
     if not doc then
       return nil, nil, ("YAML parsing error: " .. meta)
     end

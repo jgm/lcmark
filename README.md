@@ -8,6 +8,11 @@ To install:  `luarocks install lcmark`.
 
 (This installs both the library and the program.)
 
+Additionally, unless you want to use a different YAML library (see the
+`yaml_parser` option), you will need [yaml](https://github.com/lubyk/yaml):
+
+`luarocks install yaml`
+
 lcmark (program)
 ------------------
 
@@ -39,6 +44,12 @@ and end with a line `...` or `---`.  Between these, a YAML
 key/value map is expected.  YAML escaping rules must be
 followed.  The values may be YAML arrays, maps, or strings;
 strings will be interpreted as CommonMark.
+
+By default, lcmark attempts to use [yaml](https://github.com/lubyk/yaml).
+However, if the `yaml_parser` option (a function) is provided, lcmark will use
+that instead. Said function  should take a string as input and should return a
+table. In case of failure, it should throw an error; non-table returns will be
+discarded silently.
 
 Example:
 
@@ -182,6 +193,7 @@ The module exports
     - `filters` - an array of filters to run (see `load_filter` above)
     - `columns` - column width, or 0 to preserve wrapping in input
     - `yaml_metadata` - parse initial YAML metadata block
+    - `yaml_parser` - a function to parse YAML with (see [YAML Metadata](#yaml-metadata))
 
     Returns `body`, `meta` on success (where `body` is the
     rendered document body and `meta` is a metatable table whose
