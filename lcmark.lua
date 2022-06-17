@@ -23,10 +23,11 @@ local default_yaml_parser = function(...)
   if not yaml then
     local success, loaded = pcall(require, "yaml")
 
-    if success then
+    if success and type(loaded.load) == "function" then
       yaml = loaded
     else
-      error("Failed to load the yaml library. Provide a yaml_parser, or install yaml", 0)
+      error("Failed to load the 'yaml' library. Are you sure you have the " ..
+            "correct library installed and are passing the correct options?", 0)
     end
   end
 
