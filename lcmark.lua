@@ -130,7 +130,7 @@ local convert_metadata = function(table, options)
                       if type(s) == "string" then
                         return cmark.parse_string(s, options)
                       elseif type(s) == "userdata" then
-                        error("metadata must not contain userdata")
+                        return tostring(s)
                       else
                         return s
                       end
