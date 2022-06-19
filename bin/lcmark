@@ -4,14 +4,6 @@
 local optparse = require("optparse")
 local lcmark = require("lcmark")
 
-local lyaml_load do -- Try to load lyaml
-  local success, lyaml = pcall(require, "lyaml")
-  if success then
-    lyaml_load = lyaml.load
-  end
-end
-
-
 local function err(msg, exit_code)
   io.stderr:write("lcmark: " .. msg .. "\n")
   os.exit(exit_code or 1)
@@ -111,7 +103,6 @@ local options = {
   sourcepos = opts.sourcepos,
   columns = opts.columns or 0,
   yaml_metadata = true,
-  yaml_parser = lyaml_load or nil,
   filters = {}
 }
 

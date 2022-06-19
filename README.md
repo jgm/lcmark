@@ -8,10 +8,11 @@ To install:  `luarocks install lcmark`.
 
 (This installs both the library and the program.)
 
-Additionally, unless you want to use a different YAML library (see the
-`yaml_parser` option), you will need [yaml](https://github.com/lubyk/yaml):
-
-`luarocks install yaml`
+Additionally, you'll also need a YAML parsing library. lcmark will automatically
+attempt to load and use one of [yaml](https://github.com/lubyk/yaml),
+[lua-yaml](https://github.com/exosite/lua-yaml) or
+[lyaml](https://github.com/gvvaughan/lyaml). Alternatively, a custom parser can
+be used (see the `yaml_parser` option below).
 
 lcmark (program)
 ------------------
@@ -45,11 +46,10 @@ key/value map is expected.  YAML escaping rules must be
 followed.  The values may be YAML arrays, maps, or strings;
 strings will be interpreted as CommonMark.
 
-By default, lcmark attempts to use [yaml](https://github.com/lubyk/yaml).
-However, if the `yaml_parser` option (a function) is provided, lcmark will use
-that instead. Said function  should take a string as input and should return a
-table. In case of failure, it should throw an error; non-table returns will be
-discarded silently.
+If the `yaml_parser` option (a function) is provided, lcmark will use it to
+parse YAML. The function should take a string as input and should return a
+table. In case of failure, it should either throw an error or return a `nil`,
+`err` tuple; other returns will be discarded silently.
 
 Example:
 
@@ -164,9 +164,17 @@ local body, metadata = lcmark.convert("Hello *world*",
 
 The module exports
 
-`lcmark.version`: a string with the version number.
+- `lcmark.version`: a string with the version number.
 
-`lcmark.writers`: a table with strings as keys (`html`, `latex`,
+- `lcmark.yaml_parser_name`: a string holding the name of the
+    automatically-loaded module and function used to parse YAML. Possible values
+    are:
+    - `lyaml.load` (lyaml)
+    - `yaml.load` (yaml)
+    - `yaml.eval` (lua-yaml)
+    - `nil` (none) (the value `nil`, not a string)
+
+- `lcmark.writers`: a table with strings as keys (`html`, `latex`,
     `man`, `xml`, `commonmark`) and renderers as values.  A
     renderer is a function that takes three arguments (a
     cmark node, cmark options (a number), and a column width
