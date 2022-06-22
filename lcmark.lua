@@ -127,7 +127,13 @@ end
 local convert_metadata = function(table, options)
   return walk_table(table,
                     function(s)
-                      return cmark.parse_string(tostring(s), options)
+                      if type(s) == "string" then
+                        return cmark.parse_string(s, options)
+                      elseif type(s) == "userdata" then
+                        return tostring(s)
+                      else
+                        return s
+                      end
                     end, false)
 end
 
@@ -391,12 +397,20 @@ function lcmark.convert(inp, to, options)
   local body = writer(doc, opts, columns)
   local data = walk_table(meta,
                           function(node)
-                            local res = render_metadata(node, writer, opts, columns)
-                            return res
+                            if type(node) == "userdata" then
+                              return render_metadata(node, writer, opts, columns)
+                            else
+                              return node
+                            end
                           end, false)
   -- free memory allocated by libcmark
   cmark.node_free(doc)
-  walk_table(meta, cmark.node_free, true)
+  walk_table(meta,
+             function(node)
+               if type(node) == "userdata" then
+                 cmark.node_free(node)
+               end
+             end, true)
   return body, data
 end
 

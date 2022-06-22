@@ -37,8 +37,7 @@ The YAML metadata section (if present) must occur at the
 beginning of the document.  It begins with a line `---`
 and end with a line `...` or `---`.  Between these, a YAML
 key/value map is expected.  YAML escaping rules must be
-followed.  The values may be YAML arrays, maps, or strings;
-strings will be interpreted as CommonMark.
+followed.  String values will be interpreted as CommonMark.
 
 Example:
 
@@ -132,10 +131,10 @@ Filters
 Filters modify the parsed document prior to rendering.
 
 A filter is a function that takes three arguments ('doc',
-'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
-lua table whose leaf nodes are cmark nodes, and 'to' is a string
-specifying the output format.  The function may destructively
-modify 'doc' and 'meta'.
+'meta', 'to'), where 'doc' is a cmark node, 'meta' is the YAML
+metadata as a nested Lua table with all strings replaced by
+cmark nodes, and 'to' is a string specifying the output format.
+The function may destructively modify 'doc' and 'meta'.
 
 Some sample filters are provided in
 [`filters/`](https://github.com/jgm/lcmark/tree/master/filters).
@@ -185,8 +184,8 @@ The module exports
 
     Returns `body`, `meta` on success (where `body` is the
     rendered document body and `meta` is a metatable table whose
-    leaf values are rendered subdocuments), or `nil, nil, msg` on
-    failure.
+    string leaf values are rendered subdocuments), or
+    `nil, nil, msg` on failure.
 
 For developers
 --------------
