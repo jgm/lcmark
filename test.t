@@ -92,8 +92,33 @@ isnt(body, "Hello \\emph{world}\n", "latex body with yaml_metadata=false")
 eq_array(meta, {}, "latex meta with yaml_metadata=false")
 
 local body, meta, msg = lcmark.convert("---\ntitle: 1: 2\n...\n\nHello *world*", "latex", {yaml_metadata = true})
-is(meta, nil, "latex body nil with bad yaml_metadata")
-like(msg, "YAML parsing error:.*mapping values are not allowed in this context", "error message with bad yaml_metadata")
+nok(body, "latex body nil with bad YAML")
+nok(meta, "meta nil with bad YAML")
+like(msg, "YAML parsing error:.*mapping values are not allowed in this context", "error message with bad YAML")
+
+local custom_parser = function(s)
+  if s:find("title: 1: 2") then
+    error("bad yaml") -- Simulate error
+  elseif s:find("title: 3: 4") then
+    return nil, "bad yaml" -- Simulate safe error
+  else
+    return {foo = "bar"} -- Simulate success
+  end
+end
+
+local body, meta, msg = lcmark.convert("---\nfoo: bar\n...\n\nHello *world*", "latex", {yaml_metadata = true, yaml_parser = custom_parser})
+is(body, "Hello \\emph{world}\n", "latex body")
+eq_array(meta, {foo = "bar"}, "meta with custom YAML parser")
+
+local body, meta, msg = lcmark.convert("---\ntitle: 1: 2\n...\n\nHello *world*", "latex", {yaml_metadata = true, yaml_parser = custom_parser})
+nok(body, "latex body nil with bad YAML and custom YAML parser")
+nok(meta, "meta nil with bad YAML and custom YAML parser")
+like(msg, "YAML parsing error:.*bad yaml", "error message with bad YAML and custom YAML parser")
+
+local body, meta, msg = lcmark.convert("---\ntitle: 3: 4\n...\n\nHello *world*", "latex", {yaml_metadata = true, yaml_parser = custom_parser})
+nok(body, "latex body nil with bad YAML and safe custom YAML parser")
+nok(meta, "meta nil with bad YAML and safe custom YAML parser")
+like(msg, "YAML parsing error:.*bad yaml", "error message with bad YAML and safe custom YAML parser")
 
 local nonexistent, msg = lcmark.load_filter("nonexistent.lua")
 nok(nonexistent, "load_filter fails on nonexistent filter")

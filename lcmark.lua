@@ -1,5 +1,4 @@
 local cmark = require("cmark")
-local yaml = require("yaml")
 local lpeg = require("lpeg")
 
 local S, C, P, R, V, Ct =
@@ -18,6 +17,34 @@ lcmark.writers = {
   latex = cmark.render_latex,
   commonmark = cmark.render_commonmark
 }
+
+local default_yaml_parser = nil
+
+local function try_load(module_name, func_name)
+  if default_yaml_parser then -- already loaded; skip
+    return
+  end
+
+  local success, loaded = pcall(require, module_name)
+
+  if not success then
+    return
+  end
+  if type(loaded) ~= "table" or type(loaded[func_name]) ~= "function" then
+    return
+  end
+
+  default_yaml_parser = loaded[func_name]
+  lcmark.yaml_parser_name = module_name .. "." .. func_name
+end
+
+try_load("lyaml", "load")
+try_load("yaml", "load") -- must come before yaml.eval
+try_load("yaml", "eval")
+
+-- the reason yaml.load must come before yaml.eval is that the 'yaml' library
+-- prints error messages if you try to index non-existent fields such as 'eval'
+
 
 local toOptions = function(opts)
   if type(opts) == 'table' then
@@ -144,16 +171,16 @@ local yaml_block = yaml_begin_line * (yaml_content_line^1 + sp) * yaml_end_line
 
 -- Parses document with optional front YAML metadata; returns document,
 -- metadata.
-local parse_document_with_metadata = function(inp, options)
+local parse_document_with_metadata = function(inp, parser, options)
   local metadata = {}
   local meta_end = lpeg.match(yaml_block, inp)
   if meta_end then
     if meta_end then
-      local ok, yaml_meta = pcall(function ()
-                              return yaml.load(string.sub(inp, 1, meta_end))
-                            end)
+      local ok, yaml_meta, err = pcall(parser, string.sub(inp, 1, meta_end))
       if not ok then
         return nil, yaml_meta -- the error message
+      elseif not yaml_meta then -- parser may return nil, err instead of error
+        return nil, tostring(err)
       end
       if type(yaml_meta) == 'table' then
         metadata = convert_metadata(yaml_meta, options)
@@ -360,21 +387,26 @@ function lcmark.convert(inp, to, options)
   if not writer then
     return nil, nil, ("Unknown output format " .. tostring(to))
   end
-  local opts, columns, filters, yaml_metadata
+  local opts, columns, filters, yaml_metadata, yaml_parser
   if options then
      opts = toOptions(options)
      columns = options.columns or 0
      filters = options.filters or {}
      yaml_metadata = options.yaml_metadata
+     yaml_parser = options.yaml_parser or default_yaml_parser
   else
      opts = cmark.OPT_DEFAULT
      columns = 0
      filters = {}
      yaml_metadata = false
+     yaml_parser = default_yaml_parser
+  end
+  if not yaml_parser then
+    error("no YAML libraries were found and no yaml_parser was specified")
   end
   local doc, meta
   if yaml_metadata then
-    doc, meta = parse_document_with_metadata(inp, opts)
+    doc, meta = parse_document_with_metadata(inp, yaml_parser, opts)
     if not doc then
       return nil, nil, ("YAML parsing error: " .. meta)
     end
