@@ -1,54 +1,51 @@
-lcmark
-======
+# lcmark
 
-`lcmark` is a command-line CommonMark converter with flexible
-features, and a lua module that exposes these features.
+`lcmark` is a high-level [CommonMark](https://commonmark.org/) converter
+built upon [`cmark`](https://github.com/jgm/cmark).  It comes as both a
+command-line program and a Lua module.  It supports:
 
-To install:  `luarocks install lcmark`.
+- **YAML metadata** at the top of the document.
 
-(This installs both the library and the program.)
+- **Filters**, which allow the document to be transformed between parsing and
+  rendering, making a large number of customizations possible.
 
-Additionally, you'll also need a YAML parsing library. lcmark will automatically
-attempt to load and use one of [yaml](https://github.com/lubyk/yaml),
+- **Templates**, which allow the body and metadata values to be embedded into a
+  pre-defined structure.
+
+Also see the [documentation](#module).
+
+
+# Installation
+
+To install: `luarocks install lcmark`
+
+(This installs both the library and the program).
+
+Additionally, you'll also need a YAML parsing library.  `lcmark` will
+automatically attempt to load and use one of
+[yaml](https://github.com/lubyk/yaml),
 [lua-yaml](https://github.com/exosite/lua-yaml) or
-[lyaml](https://github.com/gvvaughan/lyaml). Alternatively, a custom parser can
-be used (see the `yaml_parser` option below).
+[lyaml](https://github.com/gvvaughan/lyaml), so make sure you have one of those
+installed.  Alternatively, a custom parser can be used (see the `yaml_parser`
+option below).
 
-lcmark (program)
-------------------
 
-`lcmark` does what the [`cmark`](https://github.com/jgm/cmark)
-program does, with the following enhancements:
+# Features
 
-- Support for **YAML metadata** at the top of the document.
-  The metadata is parsed as CommonMark and returned in
-  a table (dictionary) that will set template variables.
+## YAML Metadata
 
-- Support for **templates**, which add headers
-  and footers around the body of the document, and can
-  include variables defined in the metadat.
+The YAML metadata section (if present) must occur at the beginning of the
+document.  It begins with a line containing `---` and ends with a line
+containing `...` or `---`.  Between these, a YAML key/value map is expected.
 
-- Support for **filters**, which allow the document to be
-  transformed between parsing and rendering, making possible
-  a large number of customizations.
+String values found in the metadata will be parsed and rendered as
+CommonMark. If a string value contains only a single paragraph, it will be
+rendered as an inline string.
 
-`lcmark --help` will print a short list of options.
-
-For fuller descriptions, see the [`lcmark(1)` man page](lcmark.1.md).
-
-YAML metadata
--------------
-
-The YAML metadata section (if present) must occur at the
-beginning of the document.  It begins with a line `---`
-and end with a line `...` or `---`.  Between these, a YAML
-key/value map is expected.  YAML escaping rules must be
-followed.  String values will be interpreted as CommonMark.
-
-If the `yaml_parser` option (a function) is provided, lcmark will use it to
+If the `yaml_parser` option (a function) is provided, `lcmark` will use it to
 parse YAML. The function should take a string as input and should return a
-table. In case of failure, it should either throw an error or return a `nil`,
-`err` tuple; other returns will be discarded silently.
+table. In case of failure, it should either throw an error or return a
+`nil, err` tuple; other returns will be discarded silently.
 
 Example:
 
@@ -74,84 +71,89 @@ abstract: |
 Document body starts here...
 ```
 
-`lcmark.convert` returns two values on success, the parsed
-document body and a table containing the parsed metadata.
-
-Templates
----------
-
-Templates are used to integrate the document body and metadata,
-together with necessary headers and footers, into a standalone
-document.
-
-`lcmark` uses the same templating language as
-[pandoc](http://pandoc.org), and pandoc templates can be
-used with `lcmark` (with the caveat that pandoc sets many
-variables automatically which `lcmark` does not). A short
-guide:
-
-* The only special character in templates is `$`.  To get
-  a literal `$` character, use `$$`.
-
-* `$title$` will be replaced with the value of the `title`
-  metadata field, interpreted as CommonMark and rendered into
-  the target format.  Variable names can contain alphanumerics,
-  `-`, and `_`.
-
-* `$author.name$` will be replaced with the `author` field
-  of the `name` metadata field (assumed to be a map).
-
-* `$if(author)$...$endif$` will be
-  replaced by the material in `...` if `author` has a
-  "truish" value, otherwise by nothing.
-  Truish values are everything except `false`,
-  `nil`, or an empty table `{}`.  The material in `...` may
-  contain variables, surrounded by `$` as above.
-
-* `$if(author)$...$else$---$endif$` will be
-  replaced by the material in `...` if `author` has a truish
-  value, and by the material in `---` otherwise.
-
-* `$for(author)$...$author$...$endfor$` is a loop,
-  producing successive copies of `...$author$...` with
-  `$author$` replaced, in each occurrence, with a
-  different value from the table `author`.  If `author`
-  is not a table but is truish, one copy of the contents
-  will be produced.  If `author` is an empty table or is
-  falsish, nothing will be produced.
-
-* `$for(author)$...$author$...$sep$---$endfor$` is like
-  the above, except that the string `---` is inserted between
-  each copy.
-
-* If a newline occurs after `$if(variable)$`, it is ignored
-  (as is a newline before `$else$`, and before and after
-  `$endif$`).  The point of this is to allow authors to make
-  templates more readable without introducing spurious
-  blank lines into the rendered document.
-
-* Similarly, if a newline occurs after `$for(variable)$`, it is
-  ignored (as is a newline before `$sep$`, and before and after
-  `$endfor$`).
-
-Some sample templates are provided in `templates/`.
-
-Filters
--------
+## Filters
 
 Filters modify the parsed document prior to rendering.
 
-A filter is a function that takes three arguments ('doc',
-'meta', 'to'), where 'doc' is a cmark node, 'meta' is the YAML
-metadata as a nested Lua table with all strings replaced by
-cmark nodes, and 'to' is a string specifying the output format.
-The function may destructively modify 'doc' and 'meta'.
+A filter is a function that takes three arguments (`doc`, `meta`, `to`), where
+`doc` is a cmark node, `meta` is the YAML metadata as a (potentially nested) Lua
+table with all strings replaced with cmark nodes, and `to` is a string
+specifying the output format (the same string as passed to `lcmark.convert`).
+The filter may destructively modify `doc` and `meta`.
 
 Some sample filters are provided in
 [`filters/`](https://github.com/jgm/lcmark/tree/master/filters).
 
-lcmark (module)
------------------
+## Templates
+
+Templates are used to build standalone documents from the parsed document body
+and metadata.
+
+`lcmark` supports a small subset of the templating language used by
+[pandoc](http://pandoc.org), and `lcmark` templates can be used with pandoc
+(with the caveat that pandoc sets many variables automatically that `lcmark`
+does not).
+
+`nil`, `false` and `{}` (an empty table) are considered to be "falsy" values.
+Any other value is considered "truthy".
+
+A quick guide:
+
+- The only special character in templates is `$`.  To get
+  a literal `$` character, use `$$`.
+
+- `$name$` will be replaced with the value of the `name`
+  metadata field.  Variable names can contain alphanumerics,
+  `-`, and `_`.
+
+- `$name.subname$` will be replaced with the value of the
+  `subname` field of the `name` metadata field (assumed to
+  be a map).  Multiple indexes can be chained together this
+  way.
+
+- `$if(name)$...$endif$` will be replaced by the content
+  in `...` if the value of the `name` metadata field is
+  "truthy", otherwise by nothing.  `...` may contain
+  nested templating directives.
+
+- `$if(name)$...$else$,,,$endif$` will be
+  replaced by the content in `...` if `name` has a truthy
+  value, and by the content in `,,,` otherwise.  Both
+  `...` and `,,,` may contain nested templating directives.
+
+- `$for(name)$...$endfor$` is a loop, producing
+  successive concatenated copies of `...`. If the value
+  of `name` is a non-empty table, then in each occurrence
+  of `...`, the value of `name` will be replaced by a
+  different element from the table (in order).  For example,
+  `$for(authors)$$authors$$endfor$` will concatenate
+  all the values of the `authors` table.
+  
+  Otherwise, if the value of `name` isn't a table, the loop
+  behaves like an `if`.
+
+- `$for(name)$...$sep$,,,$endfor$` behaves like the above,
+  except that the content in `,,,` is inserted between each
+  copy of `...`.  `,,,` supports nested templating directives.
+
+Additionally, if newlines occurs directly after **both** `$for()$` and
+`$endfor$` (or `$if()$` and `$endif$`), they will be ignored.  This is to
+prevent spurious blank lines in the rendered document if the template contains
+many directives that span multiple lines and evaluate to false.
+
+Some sample templates are provided in
+[`templates/`](https://github.com/jgm/lcmark/tree/master/templates).
+
+
+# Documentation
+
+## Program
+
+`lcmark --help` will print a short list of options.
+
+For a more detailed description, see the [`lcmark(1)` man page](lcmark.1.md).
+
+## Module
 
 Basic usage:
 
@@ -161,64 +163,80 @@ local body, metadata = lcmark.convert("Hello *world*",
                          "latex", {smart = true, columns = 40})
 ```
 
-The module exports
+The module exports the following fields:
 
 - `lcmark.version`: a string with the version number.
 
 - `lcmark.yaml_parser_name`: a string holding the name of the
-    automatically-loaded module and function used to parse YAML. Possible values
-    are:
-    - `lyaml.load` (lyaml)
-    - `yaml.load` (yaml)
-    - `yaml.eval` (lua-yaml)
-    - `nil` (none) (the value `nil`, not a string)
+  automatically-loaded module and function used to parse YAML. 
+  Possible values are:
+  - `"lyaml.load"` (lyaml)
+  - `"yaml.load"` (yaml)
+  - `"yaml.eval"` (lua-yaml)
+  - `nil` (none)
+
+- `lcmark.convert(str, to, options)`:
+  Converts `str` (a CommonMark formatted string) to the output
+  format specified by `to` (a string; one of `html`, `commonmark`,
+  `latex`, `man`, or `xml`).  `options` is a table with the
+  following fields (all optional):
+
+  - `smart` - enable "smart punctuation"
+  - `hardbreaks` - treat newlines as hard breaks
+  - `safe` - filter out potentially unsafe HTML and links
+  - `sourcepos` - include source position in HTML and XML output
+  - `filters` - an array of filters to run (see `load_filter` below)
+  - `columns` - column width, or 0 to preserve wrapping in input
+  - `yaml_metadata` - whether to parse initial YAML metadata block
+  - `yaml_parser` - a function to parse YAML with (see
+    [YAML Metadata](#yaml-metadata))
+
+  Returns `body`, `meta` on success, where `body` is the rendered
+  document body and `meta` is the YAML metadata as a table. If the
+  `yaml_metadata` option is false or if the document contains no
+  YAML metadata, `meta` will be an empty table. In case of an
+  error, the function returns `nil, nil, msg`.
+
+- `lcmark.load_filter(filename)`:
+  Loads a filter from a Lua file (see [Filters](#filters))
+  and populates the loaded function's environment with all the
+  fields from [`cmark-lua`](https://github.com/jgm/cmark-lua).
+  Returns the filter function on success, or `nil, msg` on failure.
+
+- `lcmark.compile_template(str)`:
+  Compiles a template string `str` (see [Templates](#templates))
+  into an  arbitrary template object which can then be passed to
+  `lcmark.apply_template()`.  Returns the template object on
+  success, or `nil, msg` on failure.
+
+- `lcmark.apply_template(template, context)`:
+  Renders a compiled template object into a string using a
+  context table (typically the document's metadata).
+
+- `lcmark.render_template(str, context)`:
+  Compiles and applies a template string to a context table.
+  Returns the  resulting document string on success, or
+  `nil, msg` on failure.
 
 - `lcmark.writers`: a table with strings as keys (`html`, `latex`,
-    `man`, `xml`, `commonmark`) and renderers as values.  A
-    renderer is a function that takes three arguments (a
-    cmark node, cmark options (a number), and a column width
-    (a number), and returns a string, the rendered output.
+  `man`, `xml`, `commonmark`) and renderers as values.  A renderer
+  is a function that takes three arguments (a cmark node, cmark
+  options (a number), and a column width (a number).  It returns
+  the rendered output as a string.
 
--   `lcmark.load_filter(source)`:
-    Create a filter from a script.  A filter is a `function(doc,
-    to)`, where `doc` is a cmark node and `to` is a string
-    specifying the output format.  The function may destructively
-    modify `doc`.  A script defining a filter should return a
-    filter function.  If successful, `load_filter` returns the
-    filter, otherwise it returns nil and an error message,
 
--   `lcmark.convert(input, to, options)`:
-    Convert `inp` (CommonMark formatted string) to the output
-    format specified by `to` (`html`, `commonmark`, `latex`,
-    `man`, or `xml`).  `options` is a table with the following
-    fields (all optional):
-
-    - `smart` - enable "smart punctuation"
-    - `hardbreaks` - treat newlines as hard breaks
-    - `safe` - filter out potentially unsafe HTML and links
-    - `sourcepos` - include source position in HTML, XML output
-    - `filters` - an array of filters to run (see `load_filter` above)
-    - `columns` - column width, or 0 to preserve wrapping in input
-    - `yaml_metadata` - parse initial YAML metadata block
-    - `yaml_parser` - a function to parse YAML with (see [YAML Metadata](#yaml-metadata))
-
-    Returns `body`, `meta` on success (where `body` is the
-    rendered document body and `meta` is a metatable table whose
-    string leaf values are rendered subdocuments), or
-    `nil, nil, msg` on failure.
-
-For developers
---------------
+# Development
 
 `make` builds the rock and installs it locally.
 
-`make test` runs some tests.  These are in `test.t`.
-You'll need the `prove` executable and the `lua-TestMore` rock.
+`make test` runs some tests.  These are in `test.t` and `tests/`.
+You'll need the [`prove`](https://perldoc.perl.org/prove) executable,
+as well as [luacheck](https://github.com/mpeterv/luacheck) and
+[lua-TestMore](https://fperrad.frama.io/lua-TestMore/).
 
-`make update` will update the and spec test from the
+`make update` will update the spec tests from the
 `../cmark` directory.
 
 `make -C standalone` will create a fully self-contained version
 of `lcmark` which embeds the lua interpreter and all required
-libraries, and has no external dependencies.
-
+libraries, resulting in no external dependencies.

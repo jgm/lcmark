@@ -14,16 +14,12 @@ DESCRIPTION
 program does, with the following enhancements:
 .IP \[bu] 2
 Support for \f[B]YAML metadata\f[] at the top of the document.
-The metadata is parsed as CommonMark and returned in
-a table (dictionary) that will set template variables.
 .IP \[bu] 2
-Support for \f[B]templates\f[], which add headers
-and footers around the body of the document, and can
-include variables defined in the metadat.
+Support for \f[B]filters\f[], which allow the document to be transformed between
+parsing and rendering, making a large number of customizations possible.
 .IP \[bu] 2
-Support for \f[B]filters\f[], which allow the document to be
-transformed between parsing and rendering, making possible
-a large number of customizations.
+Support for \f[B]templates\f[], which allow the body and metadata values to be
+embedded into a pre\-defined structure.
 .SH
 OPTIONS
 .PP
@@ -39,16 +35,16 @@ Write output to \f[I]file\f[].
 \f[C]\-\-columns,\-c\f[] \f[I]NUMBER\f[]
 .PP
 Specify number of columns for text wrapping in supported
-formats. The default is 0 = no wrapping.
+formats.  The default is 0 = no wrapping.
 .PP
 \f[C]\-\-filter,\-F\f[] \f[I]file[,file]\f[]
 .PP
-Filter the parsed AST using a lua script. See FILTERS
+Filter the parsed AST using a Lua script.  See FILTERS
 below for details.
 .PP
 \f[C]\-\-template,\-T\f[] \f[I]file\f[]
 .PP
-Insert converted text and metadata into a template. See TEMPLATES,
+Insert converted text and metadata into a template.  See TEMPLATES,
 below, for template format.
 .PP
 \f[C]\-\-smart\f[]
@@ -80,12 +76,22 @@ Print version information.
 .PP
 This message
 .SH
+METADATA
+.PP
+The YAML metadata section (if present) must occur at the beginning of the
+document.  It begins with a line containing \f[C]\-\-\-\f[] and ends with a line
+containing \f[C]...\f[] or \f[C]\-\-\-\f[].  Between these, a YAML key/value map is expected.
+.PP
+String values found in the metadata will be parsed and rendered as
+CommonMark. If a string value contains only a single paragraph, it will be
+rendered as an inline string.
+.SH
 TEMPLATES
 .PP
-By default, lcmark will produce a fragment. If the \f[C]\-\-template\f[]
+By default, \f[C]lcmark\f[] will produce a fragment.  If the \f[C]\-\-template\f[]
 option is specified, it will insert this fragment into a
 template, producing a standalone document with appropriate
-header and footer. The template is sought first in the working
+header and footer.  The template is sought first in the working
 directory, then in \f[C]templates\f[], and finally in
 \f[C]$HOME/lcmark/templates\f[]. If no extension is given, the name of
 the writer will be used as an extension. So, for example, one
@@ -93,78 +99,87 @@ can put the template \f[C]letter.html\f[] in the
 \f[C]$HOME/lcmark/templates\f[] directory, and use it anywhere with
 \f[C]lcmark \-\-template letter\f[].
 .PP
-Variables are taken from YAML metadata; the fields are interpreted
+Variables are taken from YAML metadata; string fields are interpreted
 as CommonMark and rendered appropriately for the output format.
 The following additional variables are set automatically:
 .IP \[bu] 2
 \f[C]body\f[]: the document body
 .PP
-\f[C]lcmark\f[] uses the same templating language as
-pandoc (http://pandoc.org), and pandoc templates can be
-used with \f[C]lcmark\f[] (with the caveat that pandoc sets many
-variables automatically which \f[C]lcmark\f[] does not). A short
-guide:
+\f[C]lcmark\f[] supports a small subset of the templating language used by
+pandoc (http://pandoc.org), and \f[C]lcmark\f[] templates can be used with pandoc
+(with the caveat that pandoc sets many variables automatically that \f[C]lcmark\f[]
+does not).
+.PP
+\f[C]nil\f[], \f[C]false\f[] and empty tables are considered to be "falsy" values.
+Any other value is considered to be "truthy".
+.PP
+A quick guide:
 .IP \[bu] 2
-The only special character in templates is \f[C]$\f[]. To get
+The only special character in templates is \f[C]$\f[].  To get
 a literal \f[C]$\f[] character, use \f[C]$$\f[].
 .IP \[bu] 2
-\f[C]$title$\f[] will be replaced with the value of the \f[C]title\f[]
-metadata field, interpreted as CommonMark and rendered into
-the target format. Variable names can contain alphanumerics,
+\f[C]$name$\f[] will be replaced with the value of the \f[C]name\f[]
+metadata field.  Variable names can contain alphanumerics,
 \f[C]\-\f[], and \f[C]_\f[].
 .IP \[bu] 2
-\f[C]$author.name$\f[] will be replaced with the \f[C]author\f[] field
-of the \f[C]name\f[] metadata field (assumed to be a map).
+\f[C]$name.subname$\f[] will be replaced with the value of the
+\f[C]subname\f[] field of the \f[C]name\f[] metadata field (assumed to
+be a map).  More indexes can be changed together this way.
 .IP \[bu] 2
-\f[C]$if(author)$...$endif$\f[] will be
-replaced by the material in \f[C]...\f[] if \f[C]author\f[] has a
-"truish" value, otherwise by nothing.
-Truish values are everything except \f[C]false\f[],
-\f[C]nil\f[], or an empty table \f[C]{}\f[]. The material in \f[C]...\f[] may
-contain variables, surrounded by \f[C]$\f[] as above.
+\f[C]$if(name)$...$endif$\f[] will be replaced by the content
+in \f[C]...\f[] if the value of the \f[C]name\f[] metadata field is
+"truthy", otherwise by nothing.  \f[C]...\f[] may contain
+nested templating directives.
 .IP \[bu] 2
-\f[C]$if(author)$...$else$\-\-\-$endif$\f[] will be
-replaced by the material in \f[C]...\f[] if \f[C]author\f[] has a truish
-value, and by the material in \f[C]\-\-\-\f[] otherwise.
+\f[C]$if(name)$...$else$,,,$endif$\f[] will be
+replaced by the content in \f[C]...\f[] if \f[C]name\f[] has a truthy
+value, and by the content in \f[C],,,\f[] otherwise.  Both
+\f[C]...\f[] and \f[C],,,\f[] may contain nested templating directives.
 .IP \[bu] 2
-\f[C]$for(author)$...$author$...$endfor$\f[] is a loop,
-producing successive copies of \f[C]...$author$...\f[] with
-\f[C]$author$\f[] replaced, in each occurrence, with a
-different value from the table \f[C]author\f[]. If \f[C]author\f[]
-is not a table but is truish, one copy of the contents
-will be produced. If \f[C]author\f[] is an empty table or is
-falsish, nothing will be produced.
+\f[C]$for(name)$...$endfor$\f[] is a loop, producing
+successive concatenated copies of \f[C]...\f[]. If the value
+of \f[C]name\f[] is a non\-empty table, then in each occurrence
+of \f[C]...\f[], the value of \f[C]name\f[] will be replaced by a
+different element from the table (in order).  For example,
+\f[C]$for(authors)$$authors$$endfor$\f[] will concatenate
+all the values of the \f[C]authors\f[] table.
+.PP
+Otherwise, if the value of \f[C]name\f[] isn't a table, the loop
+behaves like an \f[C]if\f[].
 .IP \[bu] 2
-\f[C]$for(author)$...$author$...$sep$\-\-\-$endfor$\f[] is like
-the above, except that the string \f[C]\-\-\-\f[] is inserted between
-each copy.
-.IP \[bu] 2
-If a newline occurs after \f[C]$if(variable)$\f[], it is ignored
-(as is a newline before \f[C]$else$\f[], and before and after
-\f[C]$endif$\f[]). The point of this is to allow authors to make
-templates more readable without introducing spurious
-blank lines into the rendered document.
-.IP \[bu] 2
-Similarly, if a newline occurs after \f[C]$for(variable)$\f[], it is
-ignored (as is a newline before \f[C]$sep$\f[], and before and after
-\f[C]$endfor$\f[]).
+\f[C]$for(name)$...$sep$,,,$endfor$\f[] behaves like the above,
+except that the content in \f[C],,,\f[] is inserted between each
+copy of \f[C]...\f[].  \f[C],,,\f[] supports nested templating directives.
+.PP
+Additionally, if newlines occurs directly after \f[B]both\f[] \f[C]$for()$\f[] and
+\f[C]$endfor$\f[] (or \f[C]$if()$\f[] and \f[C]$endif$\f[]), they will be ignored.  This is to
+prevent spurious blank lines in the rendered document if the template contains
+many directives that span multiple lines and evaluate to false.
+.PP
+For examples, see the \f[C]templates/\f[] directory in the source
+repository.
 .SH
 FILTERS
 .PP
 Filters modify the parsed document prior to rendering.
 .PP
-A filter is a function that takes three arguments ('doc',
-\&'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
-lua table whose leaf nodes are cmark nodes, and 'to' is a string
-specifying the output format. The function may destructively
-modify 'doc' and 'meta'.
+A filter is a function that takes three arguments (\f[C]doc\f[], \f[C]meta\f[], \f[C]to\f[]), where
+\f[C]doc\f[] is a cmark node, \f[C]meta\f[] is the YAML metadata as a (potentially nested) Lua
+table with all strings replaced with cmark nodes, and \f[C]to\f[] is a string
+specifying the output format.  The filter may destructively modify \f[C]doc\f[] and
+\f[C]meta\f[].
+.PP
+When loading filters, \f[C]lcmark\f[] automatically populates the filter function's
+environment with the functions and values provided by
+\f[C]cmark\-lua\f[] (https://github.com/jgm/cmark\-lua) so that any \f[C]cmark\f[] functions do
+not have to be qualified with \f[C]cmark.\f[].
 .PP
 For examples, see the \f[C]filters/\f[] directory in the source
 repository.
 .PP
-The arguments to \f[C]\-\-filter\f[] should be lua scripts that \f[C]return\f[]
-a filter function, as defined above. Filters will be run in the
-order listed. Filters are applied to the root document node,
+The arguments to \f[C]\-\-filter\f[] should be Lua scripts that \f[C]return\f[]
+a filter function, as defined above.  Filters will be run in the
+order listed.  Filters are applied to the root document node,
 not to metadata (although a filter can operate on metadata if
 desired).
 .SH

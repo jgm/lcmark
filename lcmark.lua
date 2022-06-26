@@ -104,15 +104,9 @@ else
   end
 end
 
--- Create a filter from a script.  A filter is
--- a function that takes three arguments ('doc', 'meta', 'to'),
--- where 'doc' is a cmark node, 'meta' is a nested lua table
--- whose leaf nodes are cmark nodes, and 'to' is a string
--- specifying the output format.  The function may
--- destructively modify 'doc' and 'meta'.  A script defining
--- a filter should return a filter function.
--- If successful, 'load_filter' returns the filter,
--- otherwise it returns nil and an error message,
+-- Loads a filter from a Lua file and populates the loaded function's
+-- environment with all the fields from `cmark-lua`.
+-- Returns the filter function on success, or `nil, msg` on failure.
 function lcmark.load_filter(filename)
   local result, msg = loadfile_with_env(filename)
   if result then
@@ -340,8 +334,9 @@ local TemplateGrammar = Ct{"Main",
     end,
 }
 
--- Compile a template (string) into something that can
--- be applied to a context using 'lmark.apply_template'.
+-- Compiles a template string into an  arbitrary template object
+-- which can then be passed to `lcmark.apply_template()`.
+-- Returns the template object on success, or `nil, msg` on failure.
 lcmark.compile_template = function(tpl)
   local matches = lpeg.match(TemplateGrammar, tpl, nil)
   if matches[2] == nil then
@@ -361,7 +356,9 @@ lcmark.compile_template = function(tpl)
   end
 end
 
--- Compiles and applies a template in one function.
+-- Compiles and applies a template string to a context table.
+-- Returns the  resulting document string on success, or
+-- `nil, msg` on failure.
 function lcmark.render_template(tpl, ctx)
   local compiled_template, msg = lcmark.compile_template(tpl)
   if not compiled_template then
@@ -370,18 +367,24 @@ function lcmark.render_template(tpl, ctx)
   return lcmark.apply_template(compiled_template, ctx)
 end
 
--- Convert 'inp' (CommonMark formatted string) to the output format
--- specified by 'to' ('html', 'commonmark', 'latex', 'man', 'xml').
--- 'options' is a table with the following fields (all optional):
--- 'smart' -- enable "smart punctuation"
--- 'hardbreaks' -- treat newlines as hard breaks
--- 'safe' -- filter out potentially unsafe HTML and links
--- 'sourcepos' -- include source position in HTML, XML output
--- 'filters' -- an array of filters (see 'load_filter' above)
--- 'columns' -- column width, or 0 to preserve wrapping in input
--- Returns 'body', 'meta' on success (where 'body' is the rendered
--- document body and 'meta' is a metatable table whose leaf
--- values are rendered subdocuments), or nil, nil, msg on failure.
+-- Converts `inp` (a CommonMark formatted string) to the output
+-- format specified by `to` (a string; one of `html`, `commonmark`,
+-- `latex`, `man`, or `xml`).  `options` is a table with the
+-- following fields (all optional):
+-- * `smart` - enable "smart punctuation"
+-- * `hardbreaks` - treat newlines as hard breaks
+-- * `safe` - filter out potentially unsafe HTML and links
+-- * `sourcepos` - include source position in HTML and XML output
+-- * `filters` - an array of filters to run (see `load_filter` above)
+-- * `columns` - column width, or 0 to preserve wrapping in input
+-- * `yaml_metadata` - whether to parse initial YAML metadata block
+-- * `yaml_parser` - a function to parse YAML with (see
+--    [YAML Metadata](#yaml-metadata))
+-- Returns `body`, `meta` on success, where `body` is the rendered
+-- document body and `meta` is the YAML metadata as a table. If the
+-- `yaml_metadata` option is false or if the document contains no
+-- YAML metadata, `meta` will be an empty table. In case of an
+-- error, the function returns `nil, nil, msg`.
 function lcmark.convert(inp, to, options)
   local writer = lcmark.writers[to]
   if not writer then
