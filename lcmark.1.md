@@ -20,16 +20,12 @@ lcmark [options] [file..]
 program does, with the following enhancements:
 
 - Support for **YAML metadata** at the top of the document.
-  The metadata is parsed as CommonMark and returned in
-  a table (dictionary) that will set template variables.
 
-- Support for **templates**, which add headers
-  and footers around the body of the document, and can
-  include variables defined in the metadat.
+- Support for **filters**, which allow the document to be transformed between
+  parsing and rendering, making a large number of customizations possible.
 
-- Support for **filters**, which allow the document to be
-  transformed between parsing and rendering, making possible
-  a large number of customizations.
+- Support for **templates**, which allow the body and metadata values to be
+  embedded into a pre-defined structure.
 
 # OPTIONS
 
@@ -49,7 +45,7 @@ program does, with the following enhancements:
 
 `--filter,-F` *file[,file]*
 
-  Filter the parsed AST using a lua script.  See FILTERS
+  Filter the parsed AST using a Lua script.  See FILTERS
   below for details.
 
 `--template,-T` *file*
@@ -86,9 +82,19 @@ program does, with the following enhancements:
 
   This message
 
+# METADATA
+
+The YAML metadata section (if present) must occur at the beginning of the
+document.  It begins with a line containing `---` and ends with a line
+containing `...` or `---`.  Between these, a YAML key/value map is expected.
+
+String values found in the metadata will be parsed and rendered as
+CommonMark. If a string value contains only a single paragraph, it will be
+rendered as an inline string.
+
 # TEMPLATES
 
-By default, lcmark will produce a fragment.  If the `--template`
+By default, `lcmark` will produce a fragment.  If the `--template`
 option is specified, it will insert this fragment into a
 template, producing a standalone document with appropriate
 header and footer.  The template is sought first in the working
@@ -99,76 +105,85 @@ can put the template `letter.html` in the
 `$HOME/lcmark/templates` directory, and use it anywhere with
 `lcmark --template letter`.
 
-Variables are taken from YAML metadata; the fields are interpreted
+Variables are taken from YAML metadata; string fields are interpreted
 as CommonMark and rendered appropriately for the output format.
 The following additional variables are set automatically:
 
 * `body`: the document body
 
-`lcmark` uses the same templating language as
-[pandoc](http://pandoc.org), and pandoc templates can be
-used with `lcmark` (with the caveat that pandoc sets many
-variables automatically which `lcmark` does not). A short
-guide:
+`lcmark` supports a small subset of the templating language used by
+[pandoc](http://pandoc.org), and `lcmark` templates can be used with pandoc
+(with the caveat that pandoc sets many variables automatically that `lcmark`
+does not).
 
-* The only special character in templates is `$`.  To get
+`nil`, `false` and empty tables are considered to be "falsy" values.
+Any other value is considered to be "truthy".
+
+A quick guide:
+
+- The only special character in templates is `$`.  To get
   a literal `$` character, use `$$`.
 
-* `$title$` will be replaced with the value of the `title`
-  metadata field, interpreted as CommonMark and rendered into
-  the target format.  Variable names can contain alphanumerics,
+- `$name$` will be replaced with the value of the `name`
+  metadata field.  Variable names can contain alphanumerics,
   `-`, and `_`.
 
-* `$author.name$` will be replaced with the `author` field
-  of the `name` metadata field (assumed to be a map).
+- `$name.subname$` will be replaced with the value of the
+  `subname` field of the `name` metadata field (assumed to
+  be a map).  More indexes can be changed together this way.
 
-* `$if(author)$...$endif$` will be
-  replaced by the material in `...` if `author` has a
-  "truish" value, otherwise by nothing.
-  Truish values are everything except `false`,
-  `nil`, or an empty table `{}`.  The material in `...` may
-  contain variables, surrounded by `$` as above.
+- `$if(name)$...$endif$` will be replaced by the content
+  in `...` if the value of the `name` metadata field is
+  "truthy", otherwise by nothing.  `...` may contain
+  nested templating directives.
 
-* `$if(author)$...$else$---$endif$` will be
-  replaced by the material in `...` if `author` has a truish
-  value, and by the material in `---` otherwise.
+- `$if(name)$...$else$,,,$endif$` will be
+  replaced by the content in `...` if `name` has a truthy
+  value, and by the content in `,,,` otherwise.  Both
+  `...` and `,,,` may contain nested templating directives.
 
-* `$for(author)$...$author$...$endfor$` is a loop,
-  producing successive copies of `...$author$...` with
-  `$author$` replaced, in each occurrence, with a
-  different value from the table `author`.  If `author`
-  is not a table but is truish, one copy of the contents
-  will be produced.  If `author` is an empty table or is
-  falsish, nothing will be produced.
+- `$for(name)$...$endfor$` is a loop, producing
+  successive concatenated copies of `...`. If the value
+  of `name` is a non-empty table, then in each occurrence
+  of `...`, the value of `name` will be replaced by a
+  different element from the table (in order).  For example,
+  `$for(authors)$$authors$$endfor$` will concatenate
+  all the values of the `authors` table.
+  
+  Otherwise, if the value of `name` isn't a table, the loop
+  behaves like an `if`.
 
-* `$for(author)$...$author$...$sep$---$endfor$` is like
-  the above, except that the string `---` is inserted between
-  each copy.
+- `$for(name)$...$sep$,,,$endfor$` behaves like the above,
+  except that the content in `,,,` is inserted between each
+  copy of `...`.  `,,,` supports nested templating directives.
 
-* If a newline occurs after `$if(variable)$`, it is ignored
-  (as is a newline before `$else$`, and before and after
-  `$endif$`).  The point of this is to allow authors to make
-  templates more readable without introducing spurious
-  blank lines into the rendered document.
+Additionally, if newlines occurs directly after **both** `$for()$` and
+`$endfor$` (or `$if()$` and `$endif$`), they will be ignored.  This is to
+prevent spurious blank lines in the rendered document if the template contains
+many directives that span multiple lines and evaluate to false.
 
-* Similarly, if a newline occurs after `$for(variable)$`, it is
-  ignored (as is a newline before `$sep$`, and before and after
-  `$endfor$`).
+For examples, see the `templates/` directory in the source
+repository.
 
 # FILTERS
 
 Filters modify the parsed document prior to rendering.
 
-A filter is a function that takes three arguments ('doc',
-'meta', 'to'), where 'doc' is a cmark node, 'meta' is a nested
-lua table whose leaf nodes are cmark nodes, and 'to' is a string
-specifying the output format.  The function may destructively
-modify 'doc' and 'meta'.
+A filter is a function that takes three arguments (`doc`, `meta`, `to`), where
+`doc` is a cmark node, `meta` is the YAML metadata as a (potentially nested) Lua
+table with all strings replaced with cmark nodes, and `to` is a string
+specifying the output format.  The filter may destructively modify `doc` and
+`meta`.
+
+When loading filters, `lcmark` automatically populates the filter function's
+environment with the functions and values provided by
+[`cmark-lua`](https://github.com/jgm/cmark-lua) so that any `cmark` functions do
+not have to be qualified with `cmark.`.
 
 For examples, see the `filters/` directory in the source
 repository.
 
-The arguments to `--filter` should be lua scripts that `return`
+The arguments to `--filter` should be Lua scripts that `return`
 a filter function, as defined above.  Filters will be run in the
 order listed.  Filters are applied to the root document node,
 not to metadata (although a filter can operate on metadata if
