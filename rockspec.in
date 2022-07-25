@@ -24,9 +24,9 @@ description = {
 }
 dependencies = {
    "lua >= 5.1",
-   "cmark >= 0.29.0",
+   "cmark >= 0.30.2",
    "lpeg >= 0.12",
-   "optparse >= 1.0.1",
+   "optparse >= 1.4",
 }
 build = {
     type = "builtin",
