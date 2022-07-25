@@ -1,3 +1,5 @@
+*.rockspec
+
 # Compiled Lua sources
 luac.out
 
