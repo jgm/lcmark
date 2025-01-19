@@ -24,7 +24,7 @@ description = {
 }
 dependencies = {
    "lua >= 5.1",
-   "cmark >= 0.30.2",
+   "cmark >= 0.31.1",
    "lpeg >= 0.12",
    "optparse >= 1.4",
 }
